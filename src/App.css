@@ -1,0 +1,42 @@
+html {
+    background-color: black;
+    color: wheat;
+}
+
+body {
+    min-height: 100vh;
+    background-color: black;
+    margin: 1em auto;
+    padding: 0;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 10% 23% 67%
+}
+
+.paletteColumn {
+    max-height: 100vh;
+    overflow: scroll;
+}
+
+.inputsColumn {
+    max-height: 100vh;
+    overflow: scroll;
+}
+.canvasColumn {
+    max-height: 100vh;
+    overflow: scroll;
+}
+
+label {
+    display: block;
+}
+
+input.invalid {
+    background-color: palevioletred;
+}
+
+canvas {
+    background: lightblue;
+}

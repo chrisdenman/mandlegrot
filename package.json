@@ -1,0 +1,49 @@
+{
+  "name": "mandlegrot",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@ceilingcat/assertions": "^1.0.3",
+    "@ceilingcat/collections": "^1.0.3",
+    "@ceilingcat/complex-number": "^1.0.3",
+    "@ceilingcat/primitives": "^1.0.2",
+    "@ceilingcat/state-machine": "^1.0.4",
+    "@jest/globals": "^29.4.3",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-drag-reorder": "^1.2.0",
+    "react-scripts": "5.0.1",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "NODE_OPTIONS=--experimental-vm-modules react-scripts test --coverage",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "jest": {
+    "transform": {}
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
