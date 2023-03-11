@@ -23,7 +23,7 @@ export default class AppStates {
     /**
      * The initial (constructed) state's identifier.
      *
-     * @return {string}
+     * @return {string} the identifier representing the given state
      */
     static get CREATED() {
         return APP_STATE__CREATED;
@@ -32,7 +32,7 @@ export default class AppStates {
     /**
      * The state identifier representing that all user inputs are valid.
      *
-     * @return {string}
+     * @return {string} the identifier representing the given state
      */
     static get INPUTS_VALID() {
         return APP_STATE__INPUTS_VALID;
@@ -74,10 +74,6 @@ export default class AppStates {
         return APP_STATE__RENDERING_FINISHED;
     }
 
-    static get STOPPED() {
-        return APP_STATE__STOPPED;
-    }
-
     /**
      * A set containing all events.
      *
@@ -95,7 +91,6 @@ const APP_STATE__INPUTS_INVALID = "APP_STATE__INPUTS_INVALID";
 const APP_STATE__RENDERING__INIT = "APP_STATE__RENDERING__INIT";
 const APP_STATE__RENDERING = "APP_STATE__RENDERING";
 const APP_STATE__RENDERING_FINISHED = "APP_STATE__RENDERING_FINISHED";
-const APP_STATE__STOPPED = "APP_STATE__STOPPED";
 
 const ALL_STATES = new Set([
     APP_STATE__CREATED,
@@ -104,5 +99,4 @@ const ALL_STATES = new Set([
     APP_STATE__RENDERING__INIT,
     APP_STATE__RENDERING,
     APP_STATE__RENDERING_FINISHED,
-    APP_STATE__STOPPED,
 ]);
