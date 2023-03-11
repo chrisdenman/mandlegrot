@@ -9,29 +9,27 @@ import PropTypes from 'prop-types';
  * Expects a 'theRef' prop for binding the canvas reference into as it is expected the user will be manipulating the
  * canvas directly (outside of React).
  */
-export default class CanvasDisplay extends React.Component {
+const CanvasDisplay = ({theRef, width, height, onMouseMove, onMouseEnter, onMouseLeave, onMouseDown, onMouseUp}) =>
+    <canvas
+        ref={theRef}
+        width={width}
+        height={height}
+        onMouseMove={onMouseMove}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}>
+    </canvas>;
 
-    static propTypes = {
-        theRef: PropTypes.object.isRequired,
-        width: PropTypes.number.isRequired,
-        height: PropTypes.number.isRequired,
-        onMouseMove: PropTypes.func,
-        onMouseEnter: PropTypes.func,
-        onMouseLeave: PropTypes.func,
-        onMouseDown: PropTypes.func,
-        onMouseUp: PropTypes.func,
-    };
-
-    render = () => (
-        <canvas
-            onMouseMove={this.props.onMouseMove}
-            onMouseEnter={this.props.onMouseEnter}
-            onMouseLeave={this.props.onMouseLeave}
-            onMouseDown={this.props.onMouseDown}
-            onMouseUp={this.props.onMouseUp}
-            ref={this.props.theRef}
-            width={this.props.width}
-            height={this.props.height}>
-        </canvas>
-    );
-}
+CanvasDisplay.propTypes = {
+    theRef: PropTypes.object.isRequired,
+    width: PropTypes.number.isRequired,
+    height: PropTypes.number.isRequired,
+    onMouseMove: PropTypes.func,
+    onMouseEnter: PropTypes.func,
+    onMouseLeave: PropTypes.func,
+    onMouseDown: PropTypes.func,
+    onMouseUp: PropTypes.func,
+}; 
+    
+export default CanvasDisplay;

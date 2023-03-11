@@ -6,11 +6,10 @@ import Point from "../math/Point";
  * If supplied, displays the coordinates of a <code>Point</code>in an HTML span element in parentheses and separated by
  * a comma, else renders nothing.
  */
-export default class CoordinateDisplay extends React.Component {
+const CoordinateDisplay = ({location}) => location && <span>({location.x},{location.y})</span>;
 
-    static propTypes = {
-        location: PropTypes.instanceOf(Point)
-    };
+CoordinateDisplay.propTypes = {
+    location: PropTypes.instanceOf(Point)
+};
 
-    render = () => (this.props.location && <span>({this.props.location.x},{this.props.location.y})</span>);
-}
+export default CoordinateDisplay;
