@@ -1,4 +1,4 @@
-# MandleGrot 0.1.0
+# MandleGrot 0.1.1
 
 A JavaScript (React) application for rendering the familiar Mandlebrot sets.
 
