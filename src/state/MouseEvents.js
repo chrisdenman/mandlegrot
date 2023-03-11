@@ -1,6 +1,8 @@
 export default class MouseEvents {
 
     /**
+     * The identifier used for the event when the mouse enters the window (canvas).
+     *
      * @return {string}
      */
     static get ENTERED_WINDOW() {
@@ -8,6 +10,8 @@ export default class MouseEvents {
     }
 
     /**
+     * The identifier used for the event when the mouse leaves the window (canvas).
+     *
      * @return {string}
      */
     static get LEFT_WINDOW() {
@@ -15,6 +19,8 @@ export default class MouseEvents {
     }
 
     /**
+     * The identifier used for the event when the mouse button is pressed.
+     *
      * @return {string}
      */
     static get MOUSE_DOWN() {
@@ -22,6 +28,8 @@ export default class MouseEvents {
     }
 
     /**
+     * The identifier used for the event when the mouse button is released.
+     *
      * @return {string}
      */
     static get MOUSE_UP() {
