@@ -25,7 +25,9 @@ export default class Point {
     }
 
     /**
-     * @return {Point}
+     * Returns the point at x=0, y=0.
+     *
+     * @return {Point} - the point (0,0)
      */
     static get ORIGIN() {
         return ORIGIN;

@@ -1,3 +1,10 @@
+/**
+ * Combines the given predicate functions with the and <code>&&</code> operator.
+ *
+ * @param {...[function(*): boolean]} predicates - the predicates to combine
+ * @return {function(...[*]): boolean} a function that represents the logical (short-circuited) AND of the given
+ * predicates
+ */
 const and = (...predicates) =>
     ((...params) => predicates.reduce((acc, param) => acc && param(...params), predicates.length > 0));
 

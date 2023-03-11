@@ -1,5 +1,8 @@
 import {and, not, compose, bind} from "./Combinators"
 
+/**
+ * Various <code>string</code> predicates used for validating input values.
+ */
 export default class StringPredicates {
 
     static #theTypeOf = (value) => typeof value;
@@ -37,8 +40,6 @@ export default class StringPredicates {
     );
 
     static gt = (lowerBound, value) => Number(value) > lowerBound;
-
-    static lt = (upperBound, value) => Number(value) < upperBound;
 
     static isPositiveInteger = and(
         StringPredicates.isNumber,

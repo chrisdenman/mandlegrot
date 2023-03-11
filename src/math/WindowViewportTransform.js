@@ -1,5 +1,8 @@
 import Point from "./Point";
 
+/**
+ * Transforms points from a window coordinate space (with integer coordinates) to a viewport coordinate space.
+ */
 export default class WindowViewportTransform {
 
     /**
@@ -35,10 +38,10 @@ export default class WindowViewportTransform {
     /**
      * Constructs a 2-dimensional transform that translates points between window and viewport coordinate spaces.
      *
-     * @param {Point} viewportTL
-     * @param {Point} viewportBR
-     * @param {Point} windowTL
-     * @param {Point} windowBR
+     * @param {Point} viewportTL - the top-left coordinate of the viewport (in world coordinates)
+     * @param {Point} viewportBR - the bottom-right coordinate of the viewport (in world coordinates)
+     * @param {Point} windowTL - the top-left coordinate of the window (in viewport coordinates)
+     * @param {Point} windowBR - the bottom-right coordinate of the window (in viewport coordinates)
      */
     constructor(viewportTL, viewportBR, windowTL, windowBR) {
         this.#viewportTL = viewportTL;
@@ -52,9 +55,9 @@ export default class WindowViewportTransform {
     /**
      * Calculate the viewport location for a given window location.
      *
-     * @param {Point} windowLocation
+     * @param {Point} windowLocation - the window location to transform
      *
-     * @return {Point}
+     * @return {Point} the location in world coordinates that corresponds to the given window coordinate
      */
     transform = (windowLocation) => Point.at(
         this.#viewportTL.x + windowLocation.x * (this.#viewportBR.x - this.#viewportTL.x) / (this.#windowWidth),

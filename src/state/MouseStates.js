@@ -3,7 +3,7 @@ export default class MouseStates {
     /**
      * The state identifier that indicates that the cursor is outside the window.
      *
-     * @return {string}
+     * @return {string} the identifier representing the given state
      */
     static get INACTIVE() {
         return MOUSE_STATE__INACTIVE;
@@ -12,7 +12,7 @@ export default class MouseStates {
     /**
      * The state identifier that indicates when the cursor is inside the window but no buttons are pressed.
      *
-     * @return {string}
+     * @return {string} the identifier representing the given state
      */
     static get MOVING() {
         return MOUSE_STATE__MOVING;
@@ -35,7 +35,6 @@ export default class MouseStates {
     static get all() {
         return ALL_STATES;
     }
-
 }
 
 const MOUSE_STATE__INACTIVE = "MOUSE_STATE__INACTIVE";
