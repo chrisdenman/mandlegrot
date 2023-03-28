@@ -70,6 +70,14 @@ export default class RGBColour {
         return `#${this.components.map(this.#componentByteToHex).join("")}`;
     }
 
+    get toWasmArgument() {
+        return `0xff${this.components.reverse().map(this.#componentByteToHex).join("")}`;
+    }
+
+    get integerValue() {
+        return (this.#red << 24) + (this.#green << 16) + (this.#blue << 8) + (0xff);
+    }
+
     /**
      * Retrieve an array containing the red, green & blue components of this colour in that order.
      *

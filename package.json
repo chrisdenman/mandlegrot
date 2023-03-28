@@ -3,10 +3,7 @@
   "version": "0.1.1",
   "private": true,
   "dependencies": {
-    "@ceilingcat/assertions": "^1.0.3",
     "@ceilingcat/collections": "^1.0.3",
-    "@ceilingcat/complex-number": "^1.0.3",
-    "@ceilingcat/primitives": "^1.0.2",
     "@ceilingcat/state-machine": "^1.0.4",
     "@jest/globals": "^29.4.3",
     "@testing-library/jest-dom": "^5.16.5",
@@ -17,13 +14,15 @@
     "react-dom": "^18.2.0",
     "react-drag-reorder": "^1.2.0",
     "react-scripts": "5.0.1",
+    "serve": "^14.2.0",
+    "wabt": "^1.0.32",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "NODE_OPTIONS=--experimental-vm-modules react-scripts test --coverage",
-    "eject": "react-scripts eject"
+    "serve": "npm run build; serve build",
+    "test": "NODE_OPTIONS=--experimental-vm-modules react-scripts test --coverage"
   },
   "eslintConfig": {
     "extends": [

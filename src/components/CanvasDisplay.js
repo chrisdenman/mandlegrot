@@ -16,9 +16,10 @@ const CanvasDisplay = ({theRef, width, height, onMouseMove, onMouseEnter, onMous
         height={height}
         onMouseMove={onMouseMove}
         onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
         onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}>
+        onMouseLeave={onMouseLeave}
+        onMouseUp={onMouseUp}
+    >
     </canvas>;
 
 CanvasDisplay.propTypes = {

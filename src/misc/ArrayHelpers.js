@@ -3,6 +3,8 @@
  */
 export default class ArrayHelpers {
 
+    static createInit = (length, f) => Array.from({length: length}, (e, i) => f(i));
+
     /**
      * Returns the first element of an array that satisfied a predicate if supplied, else the first element of an array.
      *
@@ -39,6 +41,7 @@ export default class ArrayHelpers {
         return COPY;
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * Returns a new array with elements that satisfied 'predicate' substituted by calling the function 'replacer'.
      *

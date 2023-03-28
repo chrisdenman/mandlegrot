@@ -12,7 +12,13 @@ body {
 
 .grid {
     display: grid;
-    grid-template-columns: 10% 23% 67%
+    grid-template-columns: 6% 14% 80%
+}
+
+.infoColumn {
+    max-height: 100vh;
+    overflow: scroll;
+    font-size: 10px;
 }
 
 .paletteColumn {
@@ -35,8 +41,4 @@ label {
 
 input.invalid {
     background-color: palevioletred;
-}
-
-canvas {
-    background: lightblue;
 }

@@ -1,49 +1,39 @@
 import React from "react";
-import {IMMUTABLE_EMPTY_SET, Pair} from "@ceilingcat/collections";
 import {StateMachine} from "@ceilingcat/state-machine";
-import ValidatedInputs from "./components/ValidatedInputs.js";
-import Mandlebrot from "./math/Mandlebrot.js";
 import Point from "./math/Point.js";
 import './App.css';
-import WindowViewportTransform from "./math/WindowViewportTransform.js";
 import Cache from "./misc/Cache.js";
-import Palette from "./graphics/Palette.js";
-import CoordinateDisplay from "./components/CoordinateDisplay";
-import ComplexNumber from "@ceilingcat/complex-number";
-import PaletteEditor from "./components/PaletteEditor";
-import LinearRectangularTransform from "./math/LinearRectangularTransform";
-import AppStates from "./state/AppStates";
-import AppEvents from "./state/AppEvents";
+import MandlebrotEngineStates from "./state/mandlebrotEngine/MandlebrotEngineStates";
+import MandlebrotEngineEvents from "./state/mandlebrotEngine/MandlebrotEngineEvents";
 import PropertyIdentifiers from "./data/PropertyIdentifiers";
 import CacheKeyNames from "./misc/CacheKeyNames";
-import PropertyCollectionIdentifiers from "./data/PropertyCollectionIdentifiers";
+import PropertyGroupIdentifiers from "./data/PropertyGroupIdentifiers";
+import MandlebrotWorker from "./worker/MandlebrotWorker";
+import MouseStateMachine from "./state/mouse/MouseStateMachine";
+import InputStateMachine from "./state/inputs/InputsStateMachine";
+import MandlebrotEngineStateMachine from "./state/mandlebrotEngine/MandlebrotEngineStateMachine";
+import MemoryHelper from "./misc/wasm/MemoryHelper";
+import StateInfo from "./components/StateInfo";
+import InputsEvents from "./state/inputs/InputsEvents";
 import CanvasDisplay from "./components/CanvasDisplay";
-import StateDisplay from "./components/StateDisplay";
-import AppStateDisplayText from "./state/AppStateDisplayText";
-import MouseEvents from "./state/MouseEvents";
-import MouseStates from "./state/MouseStates";
+import WindowMouseEvents from "./state/mouse/WindowMouseEvents";
+import ValidatedInputs from "./components/ValidatedInputs";
+import ControlsStateMachine from "./state/controls/ControlsStateMachine";
+import StringStateHelper from "./state/StringStateHelper";
+import ControlsStates from "./state/controls/ControlsStates";
+import Palette from "./graphics/Palette";
+import PaletteEditor from "./components/PaletteEditor";
+import WindowViewportTransform from "./math/WindowViewportTransform";
+import ArrayHelpers from "./misc/ArrayHelpers";
+import InputsStates from "./state/inputs/InputsStates";
 import RGBColour from "./graphics/RGBColour";
-import PropertyCollectionGroup from "./data/PropertyCollectionGroup";
+import MouseStates from "./state/mouse/MouseStates";
 import {DEFAULT_PROPS} from "./AppDefaultProps";
+import {VOID, withIt} from "./misc/ScopeHelper";
+import {createState, getJsProp, setInputValues} from "./data/StateHelper";
 
-/**
- * @typedef RenderState
- * @property {Cache} cache - a cache used store off-screen image data and iteration count data
- * else undefined if the cursor is not over the canvas
- * @property {Point} lastRenderedLocation - the last location processed
- * @property {LinearRectangularTransform} linearRectangularTransform - a transform between one-dimensional data
- * structures and two-dimensional ones (the window/canvas e.g.)
- * @property {WindowViewportTransform} windowViewportTransform - a transform from window coordinate space to world
- * coordinate space
- * @property {number} renderIntervalId - the current rendering interval timer's identifier
- */
+const MAX_WEBASSEMBLY_MEMORY_PAGES = 1024;
 
-/**
- * @typedef MouseState
- * @property {Point|undefined} windowCursorLocation - the location of the cursor in the canvas's coordinate space
- * @property {StateMachine} machine - the location of the cursor in the canvas's coordinate space
- * @property {Point} windowDragStartLocation - the location of the cursor in the canvas's coordinate space when a drag started
- */
 export default class App extends React.Component {
 
     static get defaultProps() {
@@ -55,580 +45,543 @@ export default class App extends React.Component {
      */
     #canvasRef = React.createRef();
 
-    /**
-     * @param {string} currentState
-     * @param {string} event
-     * @param {string} nextState
-     */
-    static makeTransitionFunctionEntry =
-        (currentState, event, nextState) => [new Pair(currentState, event), nextState];
-
     constructor(props) {
         super(props);
-        this.state = Object.assign(
-            {
-                machine: new StateMachine(
-                    AppEvents.all,
-                    AppStates.all,
-                    AppStates.CREATED,
-                    new Map(
-                        [
-                            App.makeTransitionFunctionEntry(AppStates.CREATED, AppEvents.INPUT_VALIDATION_SUCCESS, AppStates.INPUTS_VALID),
-                            App.makeTransitionFunctionEntry(AppStates.CREATED, AppEvents.INPUT_VALIDATION_FAILURE, AppStates.INPUTS_INVALID),
-                            App.makeTransitionFunctionEntry(AppStates.INPUTS_INVALID, AppEvents.INPUT_VALIDATION_FAILURE, AppStates.INPUTS_INVALID),
-                            App.makeTransitionFunctionEntry(AppStates.INPUTS_INVALID, AppEvents.INPUT_VALIDATION_SUCCESS, AppStates.INPUTS_VALID),
-                            App.makeTransitionFunctionEntry(AppStates.INPUTS_VALID, AppEvents.INPUT_VALIDATION_FAILURE, AppStates.INPUTS_INVALID),
-                            App.makeTransitionFunctionEntry(AppStates.INPUTS_VALID, AppEvents.INPUT_VALIDATION_SUCCESS, AppStates.INPUTS_VALID),
-                            App.makeTransitionFunctionEntry(AppStates.INPUTS_VALID, AppEvents.START_PRESSED, AppStates.RENDERING__INIT),
-                            App.makeTransitionFunctionEntry(AppStates.RENDERING__INIT, AppEvents.RENDERING_INITIALISED, AppStates.RENDERING),
-                            App.makeTransitionFunctionEntry(AppStates.RENDERING, AppEvents.RENDERING_FINISHED, AppStates.RENDERING_FINISHED),
-                            App.makeTransitionFunctionEntry(AppStates.RENDERING, AppEvents.INPUT_VALIDATION_SUCCESS, AppStates.INPUTS_VALID),
-                        ]
-                    ),
-                    IMMUTABLE_EMPTY_SET,
-                    this.#startTransitionHandler
-                )
+        this.state = {
+            mandlebrotEngine: {
+                machine: MandlebrotEngineStateMachine(VOID, this.#mandlebrotEngineEndTransitionHandler),
+                cache: new Cache()
             },
-            props
-        );
+            mouse: {machine: MouseStateMachine(this.#mouseStartTransitionHandler).provide(WindowMouseEvents.initialised)},
+            controls: {machine: ControlsStateMachine()},
+            maxIterationsPalette: new Palette([RGBColour.BLACK]),
+            palette: Palette.create(55, 255, 5),
+            inputs: {
+                machine: InputStateMachine(VOID, this.#inputEndTransitionHandler),
+                propertyCollectionsGroup: createState(props.propertyCollectionsGroup),
+            }
+        };
     };
 
-    componentDidMount() {
-        this.#ifState(AppStates.CREATED, this.#setInputValues);
+    componentDidMount = () => {
+        this.#setInputValues();
+    }
+
+    /**
+     * @return {boolean}
+     */
+    get #shouldRenderCanvas() {
+        return !StringStateHelper.inState(this.#typedState.inputs.machine, InputsStates.invalid) ||
+            !StringStateHelper.inState(this.#typedState.mandlebrotEngine.machine, MandlebrotEngineStates.created);
+    }
+
+    /**
+     * @return {[number, number]}
+     */
+    #getCanvasDisplayDimensions() {
+        const inputWindowWidth = this.#getPropertyValue(PropertyIdentifiers.windowWidth, PropertyGroupIdentifiers.viewport);
+        const inputWindowHeight = this.#getPropertyValue(PropertyIdentifiers.windowHeight, PropertyGroupIdentifiers.viewport);
+
+        const mandlebrotEngineStateMachine = this.#typedState.mandlebrotEngine.machine;
+        const inputsStateMachine = this.#typedState.inputs.machine;
+
+        if (StringStateHelper.inState(mandlebrotEngineStateMachine, MandlebrotEngineStates.created)) {
+            return [inputWindowWidth, inputWindowHeight];
+        } else {
+            const {windowWidth, windowHeight} = this.#renderRequest;
+            const inputsValid = StringStateHelper.inState(inputsStateMachine, InputsStates.valid);
+            if (inputsValid) {
+                return [Math.max(windowWidth, inputWindowWidth), Math.max(windowHeight, inputWindowHeight)];
+            } else {
+                return [windowWidth, windowHeight];
+            }
+        }
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
-        if (this.#isState(AppStates.RENDERING__INIT)) {
-            this.#handle(AppEvents.RENDERING_INITIALISED);
-        } else if (this.#isShowingCanvas()) {
-            const RENDERING_CONTEXT = this.#canvasRenderingContext;
-            const WINDOW_WIDTH = this.#windowWidth;
-            const WINDOW_HEIGHT = this.#windowHeight;
-            const COMPUTED_CANVAS_STYLES = getComputedStyle(this.#canvasRef.current);
-            RENDERING_CONTEXT.fillStyle = COMPUTED_CANVAS_STYLES.backgroundColor;
-            RENDERING_CONTEXT.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+        const inputsStateMachine = this.#typedState.inputs.machine;
+        const mandlebrotEngineStateMachine = this.#typedState.mandlebrotEngine.machine;
+        const mouseStateMachine = this.#typedState.mouse.machine;
 
-            if (this.#isShowingMandlebrot()) {
-                RENDERING_CONTEXT.putImageData(this.#cache.get(CacheKeyNames.imageData), 0, 0);
+        if (!StringStateHelper.inState(mandlebrotEngineStateMachine, MandlebrotEngineStates.created) &&
+            !StringStateHelper.inState(inputsStateMachine, InputsStates.invalid)) {
+            const canvasContext = this.#canvasRef.current.getContext('2d');
+            // const inputWindowWidth =
+            //     this.#getPropertyValue(PropertyIdentifiers.windowWidth, PropertyCollectionIdentifiers.viewport);
+            // const inputWindowHeight =
+            //     this.#getPropertyValue(PropertyIdentifiers.windowHeight, PropertyCollectionIdentifiers.viewport);
+            const {windowWidth, windowHeight} = this.#renderRequest;
+            // const maxDimensions =
+            //     [Math.max(windowWidth, inputWindowWidth), Math.max(windowHeight, inputWindowHeight)];
+
+            if (StringStateHelper.inState(mandlebrotEngineStateMachine, MandlebrotEngineStates.finished, MandlebrotEngineStates.recolouring)) {
+                canvasContext.putImageData(this.#getCacheValue(CacheKeyNames.imageData), 0, 0);
             }
 
-            if (this.#mouseMachine.state === MouseStates.MOVING) {
-                const windowCursorLocation = this.#windowCursorLocation;
-                this.#canvasRenderingContext.beginPath();
-                RENDERING_CONTEXT.lineWidth = 1;
-                RENDERING_CONTEXT.strokeStyle = RGBColour.WHITE.hexString;
+            if (StringStateHelper.inState(mandlebrotEngineStateMachine, MandlebrotEngineStates.finished)) {
+                const windowCursorLocation = this.#typedState.mouse.windowCursorLocation;
+                if (StringStateHelper.inState(mouseStateMachine, MouseStates.active)) {
 
-                RENDERING_CONTEXT.beginPath();
-                RENDERING_CONTEXT.moveTo(0, windowCursorLocation.y);
-                RENDERING_CONTEXT.lineTo(WINDOW_WIDTH, windowCursorLocation.y);
-                RENDERING_CONTEXT.stroke();
+                    canvasContext.beginPath();
+                    canvasContext.lineWidth = 1;
+                    canvasContext.strokeStyle = RGBColour.WHITE.hexString;
 
-                RENDERING_CONTEXT.beginPath();
-                RENDERING_CONTEXT.moveTo(windowCursorLocation.x, 0);
-                RENDERING_CONTEXT.lineTo(windowCursorLocation.x, WINDOW_HEIGHT);
-                RENDERING_CONTEXT.stroke();
-            } else if (this.#mouseMachine.state === MouseStates.DRAGGING) {
-                const windowDragStartLocation = this.#windowDragStartLocation;
-                const windowCursorLocation = this.#windowCursorLocation;
+                    canvasContext.beginPath();
+                    canvasContext.moveTo(0, windowCursorLocation.y);
+                    canvasContext.lineTo(windowWidth, windowCursorLocation.y);
+                    canvasContext.stroke();
 
-                RENDERING_CONTEXT.lineWidth = 1;
-                RENDERING_CONTEXT.strokeStyle = RGBColour.WHITE.hexString;
-
-                RENDERING_CONTEXT.beginPath();
-                RENDERING_CONTEXT.rect(
-                    windowDragStartLocation.x,
-                    windowDragStartLocation.y,
-                    windowCursorLocation.x - windowDragStartLocation.x,
-                    windowCursorLocation.y - windowDragStartLocation.y
-                );
-                RENDERING_CONTEXT.stroke();
+                    canvasContext.beginPath();
+                    canvasContext.moveTo(windowCursorLocation.x, 0);
+                    canvasContext.lineTo(windowCursorLocation.x, windowHeight);
+                    canvasContext.stroke();
+                } else if (StringStateHelper.inState(mouseStateMachine, MouseStates.dragging)) {
+                    const windowDragStartLocation = this.#typedState.mouse.windowDragStartLocation;
+                    canvasContext.lineWidth = 1;
+                    canvasContext.strokeStyle = RGBColour.WHITE.hexString;
+                    canvasContext.beginPath();
+                    withIt(windowCursorLocation.subtract(windowDragStartLocation), (deltas) =>
+                        canvasContext.rect(windowDragStartLocation.x, windowDragStartLocation.y, deltas.x, deltas.y)
+                    );
+                    canvasContext.stroke();
+                }
             }
         }
     }
+
+    #inputEndTransitionHandler = (currentState, input) =>
+        this.#updateControlsState(({machine}) => ({machine: machine.provide(input)}))
 
     #mouseStartTransitionHandler = (currentState, input, nextState) => {
-        if (currentState === MouseStates.DRAGGING && nextState === MouseStates.MOVING) {
-            const viewportTL = this
-                .#windowViewportTransform
-                .transform(this.#windowDragStartLocation);
+        if (currentState === MouseStates.dragging && nextState === MouseStates.active) {
+            const dragStartLocation = this.#typedState.mouse.windowDragStartLocation;
+            const dragEndLocation = this.#typedState.mouse.windowCursorLocation;
+            if (!dragStartLocation.equals(dragEndLocation)) {
+                const [tl, br] = Point.sort(dragStartLocation, dragEndLocation)
+                    .map((point) => this.#typedState.mandlebrotEngine.windowViewportTransform.transform(point));
 
-            const viewportBR = this
-                .#windowViewportTransform
-                .transform(this.#windowCursorLocation);
-
-
-            const MIN_X = Math.min(viewportTL.x, viewportBR.x);
-            const MAX_X = Math.max(viewportTL.x, viewportBR.x);
-            const MIN_Y = Math.min(viewportTL.y, viewportBR.y);
-            const MAX_Y = Math.max(viewportTL.y, viewportBR.y);
-
-            this.#setInputValues([
-                [PropertyCollectionIdentifiers.world, PropertyIdentifiers.worldMinX, `${MIN_X}`],
-                [PropertyCollectionIdentifiers.world, PropertyIdentifiers.worldMinY, `${MIN_Y}`],
-                [PropertyCollectionIdentifiers.world, PropertyIdentifiers.worldMaxX, `${MAX_X}`],
-                [PropertyCollectionIdentifiers.world, PropertyIdentifiers.worldMaxY, `${MAX_Y}`],
-            ]);
-        }
-    }
-
-    #startTransitionHandler = (currentState, input, nextState) => {
-        if (currentState === AppStates.RENDERING) {
-            this.#stopRenderingTimer();
-        } else if (currentState === AppStates.INPUTS_VALID && nextState === AppStates.RENDERING__INIT) {
-
-            const WINDOW_WIDTH = this.#windowWidth;
-            const WINDOW_HEIGHT = this.#windowHeight;
-
-            this.setState({
-                render: {
-                    cache: new Cache([
-                        [CacheKeyNames.iterationData, []],
-                        [
-                            CacheKeyNames.imageData,
-                            this.#canvasRenderingContext.createImageData(WINDOW_WIDTH, WINDOW_HEIGHT)
-                        ]
-                    ]),
-                    lastRenderedLocation: undefined,
-                    linearRectangularTransform:
-                        new LinearRectangularTransform(WINDOW_WIDTH, WINDOW_HEIGHT),
-                    windowViewportTransform:
-                        new WindowViewportTransform(
-                            ...(this.#worldExtents()),
-                            Point.ORIGIN,
-                            Point.at(WINDOW_WIDTH, WINDOW_HEIGHT)
-                        ),
-                    renderIntervalId: this.#startRenderingTimer()
-                }
-            });
-        } else if (nextState === AppStates.INPUTS_VALID) {
-            this.setState({
-                mouse: {
-                    machine: new StateMachine(
-                        MouseEvents.all,
-                        MouseStates.all,
-                        MouseStates.INACTIVE,
-                        new Map(
-                            [
-                                App.makeTransitionFunctionEntry(
-                                    MouseStates.INACTIVE,
-                                    MouseEvents.ENTERED_WINDOW,
-                                    MouseStates.MOVING
-                                ),
-                                App.makeTransitionFunctionEntry(
-                                    MouseStates.MOVING,
-                                    MouseEvents.MOUSE_DOWN,
-                                    MouseStates.DRAGGING
-                                ),
-                                App.makeTransitionFunctionEntry(
-                                    MouseStates.DRAGGING,
-                                    MouseEvents.MOUSE_UP,
-                                    MouseStates.MOVING
-                                ),
-                                App.makeTransitionFunctionEntry(
-                                    MouseStates.DRAGGING,
-                                    MouseEvents.LEFT_WINDOW,
-                                    MouseStates.INACTIVE
-                                ),
-                                App.makeTransitionFunctionEntry(
-                                    MouseStates.MOVING,
-                                    MouseEvents.LEFT_WINDOW,
-                                    MouseStates.INACTIVE
-                                ),
-                            ]
-                        ),
-                        IMMUTABLE_EMPTY_SET,
-                        this.#mouseStartTransitionHandler
-                    )
-                }
-            });
-        }
-    }
-
-    // noinspection JSCheckFunctionSignatures
-    /**
-     * @return {[Point,Point]}
-     */
-    #worldExtents = () => [
-        Point.at(
-            ...([PropertyIdentifiers.worldMinX, PropertyIdentifiers.worldMinY]
-                .map((identifier) => this.#getPropertyValue(identifier, PropertyCollectionIdentifiers.world)))
-        ),
-        Point.at(
-            ...([PropertyIdentifiers.worldMaxX, PropertyIdentifiers.worldMaxY]
-                .map((identifier) => this.#getPropertyValue(identifier, PropertyCollectionIdentifiers.world)))
-        )
-    ];
-
-    #startRenderingTimer = () => window.setInterval(this.#processNextLocationOrFinish.bind(this), 0);
-
-    #stopRenderingTimer = () => clearInterval(this.#renderState.renderIntervalId);
-
-    #processNextLocation = () => {
-        const WINDOW_COORDINATE = this.#getNextLocation(this.#renderState.lastRenderedLocation);
-        const VIEWPORT_COORDINATE = this.#windowViewportTransform.transform(WINDOW_COORDINATE);
-        const Z0 = ComplexNumber.createRectangular(VIEWPORT_COORDINATE.x, VIEWPORT_COORDINATE.y);
-        const ITERATION_COUNT = Mandlebrot.execute(
-            Z0,
-            this.#getPropertyValue(PropertyIdentifiers.maxModulus, PropertyCollectionIdentifiers.engine),
-            this.#getPropertyValue(PropertyIdentifiers.maxIterations, PropertyCollectionIdentifiers.engine)
-        );
-        this.#iterationData.push(ITERATION_COUNT);
-        this.#setPixelColour(WINDOW_COORDINATE, ITERATION_COUNT);
-        this.setState({
-            render: Object.assign(this.#renderState, {lastRenderedLocation: WINDOW_COORDINATE})
-        });
-    }
-
-    #processNextLocationOrFinish = () =>
-        this.#ifState(
-            AppStates.RENDERING,
-            () => {
-                this.#getNextLocation(this.#renderState.lastRenderedLocation) === undefined ?
-                    this.#handle(AppEvents.RENDERING_FINISHED) :
-                    this.#processNextLocation();
+                this.#setInputValues(PropertyGroupIdentifiers.world, {
+                        [PropertyIdentifiers.worldMinX]: tl.x,
+                        [PropertyIdentifiers.worldMinY]: tl.y,
+                        [PropertyIdentifiers.worldMaxX]: br.x,
+                        [PropertyIdentifiers.worldMaxY]: br.y,
+                    }
+                );
             }
+        }
+        if ([WindowMouseEvents.cursorEntered, WindowMouseEvents.cursorMoved].includes(input)) {
+            this.#updateMouseState(({event}) =>
+                ({windowCursorLocation: this.#windowCursorLocation(event)})
+            );
+        } else if (input === WindowMouseEvents.cursorLeft) {
+            this.#updateMouseState(() => ({
+                windowCursorLocation: undefined,
+                windowDragStartLocation: undefined
+            }));
+        } else if (input === WindowMouseEvents.buttonDown) {
+            this.#updateMouseState(({event}) =>
+                ({windowDragStartLocation: this.#windowCursorLocation(event)})
+            );
+        } else if (input === WindowMouseEvents.buttonUp) {
+            this.#updateMouseState(() => ({windowDragStartLocation: undefined}));
+        }
+    }
+
+    /**
+     * @param {MandlebrotWorker} workerTask
+     */
+    #onWorkerTaskSuccess = (workerTask) => this.#completedTaskPool.add(workerTask.windowY);
+
+
+    #onWorkerTaskFailure = function (workerTask) {
+    }
+
+    #processWorkers = () => {
+        const pendingTaskPool = this.#getCacheValue(CacheKeyNames.pendingLineNumberPool);
+        const completedTaskPool = this.#completedTaskPool;
+
+        const {windowWidth, windowHeight: totalNumberOfTasks} = this.#renderRequest
+        if (completedTaskPool.size === totalNumberOfTasks) {
+            this.#updateMandlebrotEngineState(({machine}) => ({
+                machine: machine.provide(MandlebrotEngineEvents.calculationFinished)
+            }));
+        } else {
+            const {worldTopLeft, worldBottomRight, maxModulus, maxIterations} = this.#renderRequest
+            const idleWorkers = this.#workers.filter((worker) => worker.isReady);
+            if (idleWorkers.length !== 0) {
+                idleWorkers
+                    .forEach((idleWorkerTask) => {
+                        if (pendingTaskPool.size > 0) {
+                            const nextLineOffset = pendingTaskPool.keys().next().value;
+                            if (pendingTaskPool.delete(nextLineOffset)) {
+                                const taskWorldStartLocation =
+                                    this.#typedState.mandlebrotEngine.windowViewportTransform.transform(
+                                        Point.at(0, nextLineOffset)
+                                    );
+                                idleWorkerTask.execute(
+                                    nextLineOffset * windowWidth,
+                                    windowWidth,
+                                    taskWorldStartLocation.x,
+                                    taskWorldStartLocation.y,
+                                    nextLineOffset,
+                                    worldBottomRight.subtract(worldTopLeft).x / windowWidth,
+                                    maxModulus,
+                                    maxIterations
+                                );
+                            }
+                        }
+                    });
+            }
+            setTimeout(() => this.#processWorkers.call(this));
+        }
+    };
+
+    /**
+     * @param {number} numWindowPoints
+     * @return {number} the number of 64KiB pages required to store our iteration data
+     */
+    #iterationDataPagesRequired = (numWindowPoints) => MemoryHelper.pagesRequired(numWindowPoints * 4);
+
+    #iterationDataAndPalettePagesRequired = (numWindowPoints) =>
+        withIt(this.#typedState.palette.length, (numberOfPaletteEntries) =>
+            MemoryHelper.pagesRequired((numWindowPoints + numberOfPaletteEntries) * 4))
+
+    /**
+     * @param {String} key - the cache entry's key identifier
+     */
+    #getCacheValue = (key) => this.#cache.get(key);
+
+    /**
+     * @return {WebAssembly.Memory}
+     */
+    get #iterationDataAndPaletteMemory() {
+        return this.#getCacheValue(CacheKeyNames.iterationDataAndPaletteMemory);
+    }
+
+    /**
+     * @return {Set<number>}
+     */
+    get #completedTaskPool() {
+        return this.#getCacheValue(CacheKeyNames.completedLineNumberPool);
+    }
+
+    /**
+     * @return {MandlebrotWorker[]}
+     */
+    get #workers() {
+        return this.#getCacheValue(CacheKeyNames.mandlebrotWorkers);
+    }
+
+    /**
+     * @return {Cache}
+     */
+    get #cache() {
+        return this.#typedState.mandlebrotEngine.cache;
+    }
+
+    /**
+     * @return {RenderRequest}
+     */
+    get #createRenderRequest() {
+
+        const windowWidth = this.#getPropertyValue(PropertyIdentifiers.windowWidth, PropertyGroupIdentifiers.viewport);
+        const windowHeight = this.#getPropertyValue(PropertyIdentifiers.windowHeight, PropertyGroupIdentifiers.viewport);
+        return {
+            worldTopLeft: Point.at(
+                this.#getPropertyValue(PropertyIdentifiers.worldMinX, PropertyGroupIdentifiers.world),
+                this.#getPropertyValue(PropertyIdentifiers.worldMinY, PropertyGroupIdentifiers.world)
+            ),
+            worldBottomRight: Point.at(
+                this.#getPropertyValue(PropertyIdentifiers.worldMaxX, PropertyGroupIdentifiers.world),
+                this.#getPropertyValue(PropertyIdentifiers.worldMaxY, PropertyGroupIdentifiers.world)
+            ),
+            windowWidth: windowWidth,
+            windowHeight: windowHeight,
+            maxModulus: this.#getPropertyValue(PropertyIdentifiers.maxModulus, PropertyGroupIdentifiers.engine),
+            maxIterations: this.#getPropertyValue(PropertyIdentifiers.maxIterations, PropertyGroupIdentifiers.engine),
+            numWorkers: this.#getPropertyValue(PropertyIdentifiers.numWorkers, PropertyGroupIdentifiers.engine),
+            numWindowPoints: windowWidth * windowHeight
+        };
+    }
+
+    #renderRequested = () => {
+        this.#updateMandlebrotEngineState(({machine}) => ({
+            machine: machine.provide(MandlebrotEngineEvents.initialiseCalculations)
+        }));
+    };
+
+    /**
+     * @param {MandlebrotWorker} worker
+     */
+    #mandlebrotWorkerInitialised(worker) {
+        const workers = this.#workers;
+        workers.push(worker);
+        if (workers.length === this.#typedState.mandlebrotEngine.renderRequest.numWorkers) {
+            this.#signalMandlebrotEngineCalculationsInitialised();
+        }
+    }
+
+    #signalMandlebrotEngineCalculationsInitialised() {
+        this.#updateMandlebrotEngineState(({machine}) =>
+            ({machine: machine.provide(MandlebrotEngineEvents.calculationInitialised)})
+        );
+    }
+
+    #mandlebrotEngineEndTransitionHandler = (lastState, input, currentState) => {
+        if (currentState === MandlebrotEngineStates.initialisingCalculations) {
+            const lastRenderRequest = this.#typedState.mandlebrotEngine.renderRequest;
+            const renderRequest = this.#createRenderRequest;
+            const cache = this.#cache;
+
+            const iterationDataMemory = MemoryHelper.createOrGrow(
+                this.#iterationDataPagesRequired(renderRequest.numWindowPoints),
+                MAX_WEBASSEMBLY_MEMORY_PAGES,
+                true,
+                cache.get(CacheKeyNames.iterationDataMemory)
+            );
+
+            const iterationDataAndPaletteMemory = MemoryHelper.createOrGrow(
+                this.#iterationDataAndPalettePagesRequired(renderRequest.numWindowPoints),
+                MAX_WEBASSEMBLY_MEMORY_PAGES,
+                false,
+                this.#iterationDataAndPaletteMemory
+            );
+
+            cache.set(CacheKeyNames.iterationDataMemory, iterationDataMemory);
+            cache.set(CacheKeyNames.iterationDataAndPaletteMemory, iterationDataAndPaletteMemory);
+            cache.set(
+                CacheKeyNames.pendingLineNumberPool,
+                new Set(ArrayHelpers.createInit(renderRequest.windowHeight, i => i))
+            );
+            cache.set(CacheKeyNames.completedLineNumberPool, new Set());
+            const workersDelta = renderRequest.numWorkers - (lastRenderRequest?.numWorkers ?? 0);
+            let callback = VOID;
+            if (workersDelta < 0) {
+                const workersArray = this.#workers;
+                const newWorkers = workersArray.slice(0, renderRequest.numWorkers);
+                workersArray.slice(renderRequest.numWorkers).forEach((worker) => {
+                    worker.terminate();
+                });
+                cache.set(CacheKeyNames.mandlebrotWorkers, newWorkers);
+                callback = () => this.#signalMandlebrotEngineCalculationsInitialised();
+            } else if (workersDelta === 0) {
+                callback = () => this.#signalMandlebrotEngineCalculationsInitialised();
+            } else if (workersDelta > 0) {
+                if (lastRenderRequest === undefined) {
+                    cache.set(CacheKeyNames.mandlebrotWorkers, []);
+                }
+                callback = () => {
+                    [...Array(workersDelta).keys()].forEach(() => {
+                        new MandlebrotWorker(
+                            iterationDataMemory,
+                            this.#mandlebrotWorkerInitialised.bind(this),
+                            this.#onWorkerTaskSuccess,
+                            this.#onWorkerTaskFailure
+                        ).init()
+                    });
+                }
+            }
+            this.#updateMandlebrotEngineState(() => ({
+                renderRequest: renderRequest,
+                windowViewportTransform: new WindowViewportTransform(
+                    renderRequest.worldTopLeft,
+                    renderRequest.worldBottomRight,
+                    Point.ORIGIN,
+                    Point.at(renderRequest.windowWidth, renderRequest.windowHeight)
+                )
+            }), callback);
+        } else if (currentState === MandlebrotEngineStates.calculating) {
+            setTimeout(() => this.#processWorkers(this));
+        } else if (currentState === MandlebrotEngineStates.initialisingColourMapping) {
+            WebAssembly.instantiateStreaming(
+                fetch("MandlebrotColouring.wasm"),
+                {env: {iterationAndPaletteData: this.#iterationDataAndPaletteMemory}}
+            ).then((webAssemblyInstantiatedSource) => {
+                this.#updateMandlebrotEngineState(({machine, cache}) => {
+                        cache.set(CacheKeyNames.mandlebrotColouringModule, webAssemblyInstantiatedSource.instance);
+                        return {
+                            machine: machine.provide(MandlebrotEngineEvents.colouringInitialised)
+                        };
+                    }
+                );
+            });
+        } else if (currentState === MandlebrotEngineStates.colourMapping || currentState === MandlebrotEngineStates.recolouring) {
+            const renderRequest = this.#typedState.mandlebrotEngine.renderRequest;
+
+            const {windowWidth, windowHeight, numWindowPoints} = renderRequest;
+
+            const numWindowBytes = numWindowPoints << 2;
+            const imageDataArray = new Uint8ClampedArray(this.#iterationDataAndPaletteMemory.buffer, 0, numWindowBytes);
+            new Uint32Array(imageDataArray.buffer).set(
+                new Uint32Array(
+                    this.#getCacheValue(CacheKeyNames.iterationDataMemory).buffer, 0, numWindowPoints
+                )
+            );
+            new Uint32Array(imageDataArray.buffer, numWindowBytes)
+                .set(this.#typedState.palette.getArray.map((colour) => parseInt(colour.toWasmArgument)));
+            this.#cache.set(CacheKeyNames.imageData, new ImageData(imageDataArray, windowWidth, windowHeight));
+
+            this.#getCacheValue(CacheKeyNames.mandlebrotColouringModule).exports.iterationColouring(
+                numWindowPoints,
+                renderRequest.maxIterations - 1,
+                parseInt(this.#typedState.maxIterationsPalette.getEntry(0).toWasmArgument),
+                this.#typedState.palette.length
+            );
+            this.#updateMandlebrotEngineState(({machine}) => ({
+                machine: machine.provide(MandlebrotEngineEvents.colouringFinished)
+            }));
+        }
+    }
+
+    #getPropertyValue = (propertyIdentifier, propertyCollectionIdentifier) => getJsProp(
+        propertyCollectionIdentifier,
+        propertyIdentifier,
+        this.props.propertyCollectionsGroup,
+        this.state.inputs.propertyCollectionsGroup
+    )
+
+    /**
+     *
+     * @param {string} [groupIdentifier]
+     * @param [updates]
+     */
+    #setInputValues = (groupIdentifier = PropertyGroupIdentifiers.world, updates = {}) => {
+        const {propertyCollectionGroupState, isValid} = setInputValues(
+            this.state.inputs.propertyCollectionsGroup,
+            this.props.propertyCollectionsGroup,
+            groupIdentifier,
+            updates,
+        )
+
+        this.#updateInputsState(({machine}) => ({
+                machine: machine.provide(isValid ? InputsEvents.validated : InputsEvents.invalidated)
+            }),
+            () => this.#updateInputsState(
+                () => ({propertyCollectionsGroup: propertyCollectionGroupState}))
+        );
+    }
+
+    get #renderRequest() {
+        return this.#typedState.mandlebrotEngine.renderRequest
+    }
+
+    #onInputChange = (inputCollectionIdentifier, inputIdentifier, value) =>
+        this.#setInputValues(inputCollectionIdentifier, {[inputIdentifier]: value});
+
+    #movePaletteEntry = (oldIndex, newIndex) =>
+        this.setState(
+            {palette: this.#typedState.palette.movePaletteEntry(oldIndex, newIndex)},
+            () => this.#updateMandlebrotEngineState(({machine}) => (
+                    {machine: machine.provide(MandlebrotEngineEvents.paletteChange)}
+                )
+            )
         );
 
     /**
-     * @param {Point} lastRenderedLocation
-     * @return {Point|undefined}
+     * @param {React.MouseEvent} event
+     *
+     * @return {Point}
      */
-    #getNextLocation = lastRenderedLocation =>
-        lastRenderedLocation === undefined ?
-            Point.ORIGIN :
-            this.#renderState.linearRectangularTransform.nextLocation(lastRenderedLocation);
+    #windowCursorLocation = (event) =>
+        withIt(this.#canvasRef.current.getBoundingClientRect(), rect =>
+            Point.at(
+                Math.min(event.clientX - Math.floor(rect.left), rect.width - 1),
+                Math.min(event.clientY - Math.floor(rect.top), rect.height - 1)
+            )
+        )
 
     /**
-     * @param {number} iterationCount
-     * @return {RGBColour}
+     *
+     * @param {string} mouseStateEvent
+     * @param {React.MouseEvent} mouseEvent
      */
-    #pixelColour = iterationCount =>
-        iterationCount === Number.POSITIVE_INFINITY ?
-            Palette.divergentColour :
-            this.#palette.getEntry(iterationCount % this.#palette.length);
-
-    /**
-     * @param {Point} viewportLocation
-     * @param {number} iterationCount
-     */
-    #setPixelColour = (viewportLocation, iterationCount) =>
-        this.#setMandlegrotPixelColour(viewportLocation, this.#pixelColour(iterationCount));
-
-    /**
-     * @return {number[]}
-     */
-    get #iterationData() {
-        return this.#cache.get(CacheKeyNames.iterationData);
-    }
-
-    get #windowViewportTransform() {
-        return this.#renderState.windowViewportTransform;
-    }
-
-    get #cache() {
-        return this.#renderState.cache;
-    }
-
-    #reRenderCanvas() {
-        this.#iterationData.forEach((value, offset) =>
-            this.#setPixelColour(
-                this.#renderState.linearRectangularTransform.forward(offset),
-                value
+    #mouseEvent = (mouseStateEvent, mouseEvent) => {
+        mouseEvent.preventDefault();
+        this.#updateMouseState(
+            () => ({event: mouseEvent}),
+            () => this.#updateMouseState(
+                ({machine}) => ({machine: machine.provide(mouseStateEvent)})
             )
         )
     }
 
     /**
-     * @param {Point} location
-     * @param {RGBColour} rgbColour
+     * @param {(MouseReactState) => MouseReactState} stateMutator
+     * @param {() => void} [callback]
      */
-    #setMandlegrotPixelColour(location, rgbColour) {
-        /**
-         * @type {ImageData}
-         */
-        const imageData = this.#renderState.cache.get(CacheKeyNames.imageData)
-        const pixelOffset = this.#renderState.linearRectangularTransform.inverse(location);
-        const dataOffset = pixelOffset << 2;
-        const imageDataData = imageData.data;
-        imageDataData[dataOffset] = rgbColour.red;
-        imageDataData[dataOffset + 1] = rgbColour.green;
-        imageDataData[dataOffset + 2] = rgbColour.blue;
-        imageDataData[dataOffset + 3] = 255;
+    #updateMouseState = (stateMutator, callback) => {
+        withIt(this.#typedState.mouse, it =>
+            this.setState({mouse: Object.assign(it, stateMutator(it))}, callback)
+        )
     }
 
     /**
-     * @return CanvasRenderingContext2D
+     * @param {(MandlebrotEngineReactState) => MandlebrotEngineReactState} stateMutator
+     * @param {() => any} [callback]
      */
-    get #canvasRenderingContext() {
-        return this.#canvas.getContext('2d');
+    #updateMandlebrotEngineState = (stateMutator, callback) => {
+        withIt(this.#typedState.mandlebrotEngine, it =>
+            this.setState({mandlebrotEngine: Object.assign(it, stateMutator(it))}, callback)
+        )
     }
 
     /**
-     * @return {HTMLCanvasElement}
+     * @param {(InputsReactState) => InputsReactState} stateMutator
+     * @param {() => any} [callback]
      */
-    get #canvas() {
-        return this.#canvasRef.current;
-    }
-
-    #handle = (event) => this.setState({machine: this.#appStateMachine.provide(event)});
-
-    /**
-     * @param event
-     *
-     * @return {Point}
-     */
-    #getCanvasPosition(event) {
-        const rect = this.#canvas.getBoundingClientRect();
-        return Point.at(event.clientX - Math.trunc(rect.left) - 1, event.clientY - Math.trunc(rect.top) - 1);
-    }
-
-
-    #onCanvasMouseEnter = (event) => {
-        if (this.#isShowingCanvas()) {
-            this.setState(
-                {
-                    mouse: Object.assign(
-                        this.#mouseState, {machine: this.#mouseMachine.provide(MouseEvents.ENTERED_WINDOW)}
-                    )
-                });
-            event.preventDefault();
-        }
-    }
-
-    #onCanvasMouseMove = (event) => {
-        if (this.#isShowingCanvas() &&
-            (this.#mouseMachine.state === MouseStates.MOVING || this.#mouseMachine.state === MouseStates.DRAGGING)) {
-            this.#setWindowCursorLocation(this.#getCanvasPosition(event));
-            event.preventDefault();
-        }
-    }
-
-    #onCanvasMouseDown = (event) => {
-        if (this.#isShowingMandlebrot()) {
-            this.setState({
-                mouse: Object.assign(
-                    this.#mouseState,
-                    {
-                        windowDragStartLocation: this.#getCanvasPosition(event),
-                        machine: this.#mouseMachine.provide(MouseEvents.MOUSE_DOWN)
-                    }
-                )
-            });
-            event.preventDefault();
-        }
-    }
-
-    #onCanvasMouseUp = (event) => {
-        if (this.#isShowingCanvas()) {
-            this.setState({
-                mouse: Object.assign(
-                    this.#mouseState, {machine: this.#mouseMachine.provide(MouseEvents.MOUSE_UP)})
-            });
-            event.preventDefault();
-        }
-    }
-
-    #onCanvasMouseLeave = (_) => {
-        if (this.#isShowingCanvas()) {
-            this.setState({
-                mouse: Object.assign(
-                    this.#mouseState, {machine: this.#mouseMachine.provide(MouseEvents.LEFT_WINDOW)})
-            });
-        }
+    #updateInputsState = (stateMutator, callback) => {
+        withIt(this.#typedState.inputs, it =>
+            this.setState({inputs: Object.assign(it, stateMutator(it))}, callback)
+        )
     }
 
     /**
-     * @param {string} propertyIdentifier
-     * @param {string}  propertyCollectionIdentifier
-     *
-     * @return {*}
+     * @param {(ControlsReactState) => ControlsReactState} stateMutator
+     * @param {() => any} [callback]
      */
-    #getPropertyValue = (propertyIdentifier, propertyCollectionIdentifier) =>
-        this.#getProperty(propertyIdentifier, propertyCollectionIdentifier).boundValue;
-
-    /**
-     * @param {string} propertyIdentifier
-     * @param {string} propertyCollectionIdentifier
-     *
-     * @return {Property}
-     */
-    #getProperty = (propertyIdentifier, propertyCollectionIdentifier) =>
-        this
-            .#propertyCollectionGroup
-            .getPropertyCollection(propertyCollectionIdentifier)
-            .getProperty(propertyIdentifier);
-
-    #setInputValues = (inputValueBindings = []) => {
-        const propertyCollectionGroup = this.#propertyCollectionGroup;
-
-        propertyCollectionGroup.setValues(inputValueBindings);
-
-        const VALIDATION_EVENT = propertyCollectionGroup.validate() ?
-            AppEvents.INPUT_VALIDATION_SUCCESS :
-            AppEvents.INPUT_VALIDATION_FAILURE;
-
-        this.setState(propertyCollectionGroup.dehydrate, () => this.#handle(VALIDATION_EVENT));
-    }
-
-    #onInputChange = (inputCollectionIdentifier, inputIdentifier, value) => {
-        this.#setInputValues([[inputCollectionIdentifier, inputIdentifier, value]]);
+    #updateControlsState = (stateMutator, callback) => {
+        withIt(this.#typedState.controls, it =>
+            this.setState({controls: Object.assign(it, stateMutator(it))}, callback)
+        )
     }
 
     /**
-     * @return {number|undefined}
+     * @return {ReactState,Readonly<S>}
      */
-    get #windowWidth() {
-        return this.#getPropertyValue(PropertyIdentifiers.windowWidth, PropertyCollectionIdentifiers.viewport);
+    get #typedState() {
+        return this.state;
     }
 
-    /**
-     * @return {number|undefined}
-     */
-    get #windowHeight() {
-        return this.#getPropertyValue(PropertyIdentifiers.windowHeight, PropertyCollectionIdentifiers.viewport);
-    }
-    #movePaletteEntry = (oldIndex, newIndex) => {
-        this.setState({palette: this.#palette.movePaletteEntry(oldIndex, newIndex)});
-        if (this.#isShowingMandlebrot()) {
-            this.#reRenderCanvas();
-            this.forceUpdate();
-        }
-    }
+    #renderCanvas = () => (
+        <CanvasDisplay
+            theRef={this.#canvasRef}
+            onMouseEnter={this.#mouseEvent.bind(this, WindowMouseEvents.cursorEntered)}
+            onMouseMove={this.#mouseEvent.bind(this, WindowMouseEvents.cursorMoved)}
+            onMouseDown={this.#mouseEvent.bind(this, WindowMouseEvents.buttonDown)}
+            onMouseUp={this.#mouseEvent.bind(this, WindowMouseEvents.buttonUp)}
+            onMouseLeave={this.#mouseEvent.bind(this, WindowMouseEvents.cursorLeft)}
+            width={this.#getCanvasDisplayDimensions()[0]}
+            height={this.#getCanvasDisplayDimensions()[1]}
+        />
+    );
 
-    /**
-     * @return {Point|undefined}
-     */
-    #lastRenderedLocation = () => this.#ifState(AppStates.RENDERING, () => this.#renderState.lastRenderedLocation);
-
-    /**
-     * @return {boolean}
-     */
-    #isState = (state) => AppStates.equals(this.#machineState, state);
-
-    /**
-     * @return {boolean}
-     */
-    #isStateIn = (...states) => AppStates.in(this.#machineState, ...states);
-
-    #ifState = (state, f, e) => this.#isState(state) ?
-        (typeof f === 'function' ? f() : f) :
-        (e === undefined ?
-                e :
-                ((typeof e === 'function' ?
-                        e() :
-                        e
-                ))
-        );
-
-    get #machineState() {
-        return this.#appStateMachine.state;
-    }
-
-    /**
-     * @return {PropertyCollectionGroup}
-     */
-    get #propertyCollectionGroup() {
-        /**
-         *
-         * @type {PropertyCollectionData[]}
-         */
-        const propertyCollectionsGroupData = this.#propertyCollectionsGroupState;
-        return PropertyCollectionGroup.hydrate(propertyCollectionsGroupData);
-    }
-
-    get #mouseMachine() {
-        return this.#mouseState.machine;
-    }
-
-    /**
-     * @return {PropertyCollectionData[]}
-     */
-    get #propertyCollectionsGroupState() {
-        return this.state.propertyCollectionsGroup;
-    }
-
-    /**
-     * @return {Palette}
-     */
-    get #palette() {
-        return this.state.palette;
-    }
-
-    /**
-     * @return {RenderState}
-     */
-    get #renderState() {
-        return this.state.render;
-    }
-
-    /**
-     * @return {StateMachine}
-     */
-    get #appStateMachine() {
-        return this.state.machine;
-    }
-
-    /**
-     * @return {MouseState}
-     */
-    get #mouseState() {
-        return this.state.mouse;
-    }
-
-    /**
-     * @return {Point}
-     */
-    get #windowCursorLocation() {
-        return this.#mouseState.windowCursorLocation;
-    }
-
-    /**
-     * @return {Point}
-     */
-    get #windowDragStartLocation() {
-        return this.#mouseState.windowDragStartLocation;
-    }
-
-    #setWindowCursorLocation = location =>
-        this.setState({mouse: Object.assign(this.#mouseState, {windowCursorLocation: location})});
-
-    /**
-     * @return {boolean}
-     */
-    #areInputsDisabled = () => !this.#isStateIn(AppStates.INPUTS_INVALID, AppStates.INPUTS_VALID);
-
-    /**
-     * @return {boolean}
-     */
-    #isStartButtonEnabled = () => this.#isState(AppStates.INPUTS_VALID);
-
-    /**
-     * @return {boolean}
-     */
-    #isShowingCanvas = () => this.#isStateIn(AppStates.RENDERING, AppStates.RENDERING_FINISHED, AppStates.INPUTS_VALID);
-
-    /**
-     * @return {boolean}
-     */
-    #isRendering = () => this.#isState(AppStates.RENDERING);
-
-    /**
-     * @return {boolean}
-     */
-    #isShowingMandlebrot = () => this.#isStateIn(AppStates.RENDERING, AppStates.RENDERING_FINISHED);
+    #getRenderInfo = () => Object.entries(this.#typedState.inputs.propertyCollectionsGroup).map(([propertyGroupIdentifier, propertyGroup]) =>
+        ({
+            identifier: propertyGroupIdentifier,
+            properties: Object.entries(propertyGroup.properties).map(([propertyIdentifier, propertyValues]) =>
+                Object.assign({identifier: propertyIdentifier}, propertyValues)
+            ).sort((left, right) => left.index - right.index),
+            errors: propertyGroup.errors
+        })
+    );
 
     #renderInputElements = () => (
-        this.#propertyCollectionsGroupState.map(
+        this.#getRenderInfo().map(
             ({identifier, properties, errors}) =>
                 <ValidatedInputs
                     key={identifier}
-                    disabled={this.#areInputsDisabled()}
-                    properties={
-                        [...properties]
-                            .sort(
-                                (left, right) => left.index - right.index
-                            )
-                    }
+                    disabled={false}
+                    properties={properties}
                     errors={errors}
                     onChange={this.#onInputChange.bind(this, identifier)}
                 />
@@ -638,40 +591,21 @@ export default class App extends React.Component {
     #renderControls = () => (
         <div className="controls">
             <button
-                onClick={() => this.#handle(AppEvents.START_PRESSED)}
-                disabled={!this.#isStartButtonEnabled()}>Start
+                onClick={this.#renderRequested.bind(this)}
+                disabled={StringStateHelper.inState(this.#typedState.controls.machine, ControlsStates.disabled)}>Render
             </button>
         </div>
-    );
-
-    #renderCanvas = () => (
-        <CanvasDisplay
-            theRef={this.#canvasRef}
-            onMouseMove={this.#onCanvasMouseMove.bind(this)}
-            onMouseEnter={this.#onCanvasMouseEnter.bind(this)}
-            onMouseLeave={this.#onCanvasMouseLeave.bind(this)}
-            onMouseDown={this.#onCanvasMouseDown.bind(this)}
-            onMouseUp={this.#onCanvasMouseUp.bind(this)}
-            width={this.#ifState(AppStates.INPUTS_INVALID, 0, () => this.#windowWidth)}
-            height={this.#ifState(AppStates.INPUTS_INVALID, 0, () => this.#windowHeight)}
-        />
-    );
-
-    #renderRenderInformation = () => (
-        this.#isRendering() &&
-        (
-            <div>
-                <span>Processing Image Pixel: </span>
-                <CoordinateDisplay location={this.#lastRenderedLocation()}/>
-            </div>
-        )
     );
 
     render() {
         return (
             <div className="grid">
                 <div className={"paletteColumn"}>
-                    <PaletteEditor palette={this.#palette} onPaletteEntryPositionChange={this.#movePaletteEntry}/>
+                    <span>MaxIterations</span>
+                    <PaletteEditor palette={this.#typedState.maxIterationsPalette}/>
+                    <span>Palette</span>
+                    <PaletteEditor palette={this.#typedState.palette}
+                                   onPaletteEntryPositionChange={this.#movePaletteEntry}/>
                 </div>
 
                 <div className="inputsColumn">
@@ -680,17 +614,80 @@ export default class App extends React.Component {
                 </div>
 
                 <div className="canvasColumn">
-                    {this.#renderCanvas()}
+                    {this.#shouldRenderCanvas && this.#renderCanvas()}
 
-                    <div className="information">
-                        <StateDisplay
-                            displayText={AppStateDisplayText.from(this.#machineState)}
-                        />
-
-                        {this.#renderRenderInformation()}
-                    </div>
+                    <StateInfo
+                        inputs={this.#typedState.inputs.machine}
+                        controls={this.#typedState.controls.machine}
+                        mandlebrotEngine={this.#typedState.mandlebrotEngine.machine}
+                        mouse={this.#typedState.mouse.machine}/>
                 </div>
+
             </div>
         );
     }
 }
+
+/**
+ * @typedef ReactState
+ * @property {ControlsReactState} controls - the state for the controls (the render button)
+ * @property {InputsReactState} inputs - the state for the input controls
+ * @property {MandlebrotEngineReactState} mandlebrotEngine - the state for the mandlebrot engine
+ * @property {Palette} maxIterationsPalette - the state for the palette used to store the colour to use for rendering non-divergent points
+ * @property {MouseReactState} mouse - the mouse state
+ * @property {Palette} palette - the normal palette's state
+ */
+
+/**
+ * @typedef ControlsReactState
+ * @property {StateMachine} machine - the state machine for the controls
+ */
+
+/**
+ * @typedef InputsReactState
+ * @property {StateMachine} [machine] - the state machine for the input elements
+ * @property {PropertyCollectionGroup} [propertyCollectionsGroup] - the render state for the input elements
+ */
+
+/**
+ * @typedef MandlebrotEngineReactState
+ * @property {Cache} [cache] - a cache used store off-screen image data and iteration count data else undefined if the cursor is not over the canvas * @property {StateMachine} machine
+ * @property {StateMachine} [machine] - the state machine for the mandlebrot engine
+ * @property {RenderRequest} [renderRequest] - the last requested rendering information
+ * @property {WindowViewportTransform} [windowViewportTransform] - a transform from window coordinate space to world
+ * coordinate space
+ */
+
+/**
+ * @typedef MouseReactState
+ * @property {React.MouseEvent} [event] - the last native mouse event
+ * @property {StateMachine} [machine] - the window's mouse state machine
+ * @property {Point} [windowCursorLocation] - the location of the cursor in the window's (canvas's) coordinate space
+ * @property {Point} [windowDragStartLocation] - the location of the cursor in the canvas's coordinate space when a drag started
+ */
+
+/**
+ * @typedef RenderRequest
+ * @property {number} maxIterations - the maximum permitted iterations
+ * @property {number} maxModulus - the maximum permitted modulus
+ * @property {number} numWindowPoints - the number of points in total to calculate and render
+ * @property {number} numWorkers - the number of WASM web workers to use
+ * @property {number} windowHeight - the pixel height of the window (canvas)
+ * @property {number} windowWidth - the pixel height of the window (canvas)
+ * @property {Point} worldBottomRight - the bottom-right world point to calculate
+ * @property {Point} worldTopLeft - the top-left world point to calculate
+ */
+
+/**
+ * @typedef PropertyCollectionsGroup
+ * @property {PropertyCollectionGroup} viewportPropertyGroup
+ * @property {PropertyCollectionGroup} worldInputCollection
+ * @property {PropertyCollectionGroup} engineInputCollection
+ */
+
+/**
+ * @typedef PropertyCollectionGroup
+ * @property properties
+ * @property {String[]} [errors]
+ */
+

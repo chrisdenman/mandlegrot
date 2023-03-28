@@ -1,15 +1,8 @@
-import {VALIDATORS} from "./PropertyValidators";
-
 /**
  * @typedef ValidatorData
  * @property {string} identifier
  */
 export default class Validator {
-
-    /**
-     * @type {string}
-     */
-    #identifier
 
     /**
      * @type {function(*): boolean}
@@ -22,24 +15,15 @@ export default class Validator {
     #failureMessageTemplate
 
     /**
-     * @param {string} identifier - a unique identifier for this validator
      * @param {function(*): boolean} predicate - a function that returns <code>true</code> when invoked with valid
      * inputs and <code>false</code> otherwise
      * @param {TextTemplate} failureMessageTemplate
      *
      * @return {Validator}
      */
-    constructor(identifier, predicate, failureMessageTemplate) {
-        this.#identifier = identifier;
+    constructor(predicate, failureMessageTemplate) {
         this.#predicate = predicate;
         this.#failureMessageTemplate = failureMessageTemplate;
-    }
-
-    /**
-     * @return {string}
-     */
-    get identifier() {
-        return this.#identifier;
     }
 
     /**
@@ -54,21 +38,5 @@ export default class Validator {
      */
     get failureMessageTemplate() {
         return this.#failureMessageTemplate;
-    }
-
-    /**
-     * @param {string} validatorIdentifier
-     *
-     * @return Validator
-     */
-    static hydrate = (validatorIdentifier) => VALIDATORS[validatorIdentifier];
-
-    /**
-     * @return {ValidatorData}
-     */
-    get dehydrate() {
-        return {
-            identifier: this.#identifier
-        };
     }
 }

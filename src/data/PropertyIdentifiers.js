@@ -18,12 +18,16 @@ export default class PropertyIdentifiers {
         return WORLD_MAX_Y;
     }
     static get maxIterations() {
-        return MAX_ITERATIONS;
+        return ENGINE_MAX_ITERATIONS;
     }
     static get maxModulus() {
-        return _MAX_MODULUS;
+        return ENGINE_MAX_MODULUS;
     }
-}
+
+    static get numWorkers() {
+        return ENGINE_NUM_WORKERS;
+    }
+r}
 
 const WINDOW_WIDTH = "windowWidth";
 const WINDOW_HEIGHT = "windowHeight";
@@ -33,6 +37,7 @@ const WORLD_MAX_X = "worldMaxX";
 const WORLD_MIN_Y = "worldMinY";
 const WORLD_MAX_Y = "worldMaxY";
 
-const MAX_ITERATIONS = "maxIterations";
-const _MAX_MODULUS = "maxModulus";
+const ENGINE_MAX_ITERATIONS = "maxIterationCount";
+const ENGINE_MAX_MODULUS = "maxModulus";
+const ENGINE_NUM_WORKERS = "numWorkers";
 

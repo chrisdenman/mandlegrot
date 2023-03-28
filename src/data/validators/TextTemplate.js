@@ -38,10 +38,4 @@ export default class TextTemplate {
                     ),
                 this.#template
             );
-
-    /**
-     * @param {TextTemplateData} textTemplateData
-     * @return {TextTemplate}
-     */
-    static hydrate = (textTemplateData) => new TextTemplate(textTemplateData.template);
 }

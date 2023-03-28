@@ -19,7 +19,7 @@ const PaletteEditor = ({palette, onPaletteEntryPositionChange}) =>
 
 PaletteEditor.propTypes = {
     palette: PropTypes.instanceOf(Palette).isRequired,
-    onPaletteEntryPositionChange: PropTypes.func.isRequired
+    onPaletteEntryPositionChange: PropTypes.func
 };
 
 export default PaletteEditor;

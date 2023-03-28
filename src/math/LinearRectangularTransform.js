@@ -1,5 +1,6 @@
 import Point from "./Point";
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Represents a transform from a 1-dimensional data structure to a 2-dimensional data structure.
  * <p>

@@ -1,8 +1,4 @@
-import Palette from "./graphics/Palette";
-import PropertyCollectionIdentifiers from "./data/PropertyCollectionIdentifiers";
-import PropertyIdentifiers from "./data/PropertyIdentifiers";
-import PropertyInputLabelText from "./data/PropertyInputLabelText";
-import {BINDER_IDENTIFIER_NUMBER} from "./data/Binders";
+import PropertyGroupIdentifiers from "./data/PropertyGroupIdentifiers";
 import {
     IS_NUMBER,
     IS_POSITIVE_INTEGER,
@@ -10,123 +6,45 @@ import {
     IS_STRICTLY_LESS,
     NOT_BLANK
 } from "./data/validators/PropertyValidators";
-
-const INPUT__TYPE__TEXT = "text";
+import PropertyIdentifiers from "./data/PropertyIdentifiers";
+import PropertyInputLabelText from "./data/PropertyInputLabelText";
+import {BINDER_IDENTIFIER_NUMBER} from "./data/Binders";
+import {buildPropertyProp} from "./data/StateHelper";
 
 const DEFAULT_PROPS = {
-    palette: Palette.create(90, 255, 5),
-    propertyCollectionsGroup: [
-        {
-            identifier: PropertyCollectionIdentifiers.viewport,
-            properties: [
-                {
-                    index: 0,
-                    identifier: PropertyIdentifiers.windowWidth,
-                    htmlType: INPUT__TYPE__TEXT,
-                    label: PropertyInputLabelText.from(PropertyIdentifiers.windowWidth),
-                    value: "100",
-                    binderIdentifier: BINDER_IDENTIFIER_NUMBER,
-                    validatorIdentifiers: [NOT_BLANK, IS_POSITIVE_INTEGER],
-                    errors: []
-                },
-                {
-                    index: 1,
-                    identifier: PropertyIdentifiers.windowHeight,
-                    htmlType: INPUT__TYPE__TEXT,
-                    label: PropertyInputLabelText.from(PropertyIdentifiers.windowHeight),
-                    value: "100",
-                    binderIdentifier: BINDER_IDENTIFIER_NUMBER,
-                    validatorIdentifiers: [NOT_BLANK, IS_POSITIVE_INTEGER],
-                    errors: []
-                }
-            ],
-            errors: []
+    propertyCollectionsGroup: {
+        [PropertyGroupIdentifiers.viewport]: {
+            properties: {
+                [PropertyIdentifiers.windowWidth]: buildPropertyProp(0, PropertyInputLabelText.from(PropertyIdentifiers.windowWidth), "1200", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_POSITIVE_INTEGER]),
+                [PropertyIdentifiers.windowHeight]: buildPropertyProp(1, PropertyInputLabelText.from(PropertyIdentifiers.windowHeight), "1200", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_POSITIVE_INTEGER]),
+            }
         },
-
-        {
-            identifier: PropertyCollectionIdentifiers.world,
-            properties: [
-                {
-                    index: 0,
-                    identifier: PropertyIdentifiers.worldMinX,
-                    htmlType: INPUT__TYPE__TEXT,
-                    label: PropertyInputLabelText.from(PropertyIdentifiers.worldMinX),
-                    value: "-2",
-                    binderIdentifier: BINDER_IDENTIFIER_NUMBER,
-                    validatorIdentifiers: [NOT_BLANK, IS_NUMBER],
-                    errors: []
-                },
-                {
-                    index: 1,
-                    identifier: PropertyIdentifiers.worldMinY,
-                    htmlType: INPUT__TYPE__TEXT,
-                    label: PropertyInputLabelText.from(PropertyIdentifiers.worldMinY),
-                    value: "-1.12",
-                    binderIdentifier: BINDER_IDENTIFIER_NUMBER,
-                    validatorIdentifiers: [NOT_BLANK, IS_NUMBER],
-                    errors: []
-                },
-                {
-                    index: 2,
-                    identifier: PropertyIdentifiers.worldMaxX,
-                    htmlType: INPUT__TYPE__TEXT,
-                    label: PropertyInputLabelText.from(PropertyIdentifiers.worldMaxX),
-                    value: "0.47",
-                    binderIdentifier: BINDER_IDENTIFIER_NUMBER,
-                    validatorIdentifiers: [NOT_BLANK, IS_NUMBER],
-                    errors: []
-                },
-                {
-                    index: 3,
-                    identifier: PropertyIdentifiers.worldMaxY,
-                    htmlType: INPUT__TYPE__TEXT,
-                    label: PropertyInputLabelText.from(PropertyIdentifiers.worldMaxY),
-                    value: "1.12",
-                    binderIdentifier: BINDER_IDENTIFIER_NUMBER,
-                    validatorIdentifiers: [NOT_BLANK, IS_NUMBER],
-                    errors: []
-                },
-            ],
-            propertiesValidators: [
+        [PropertyGroupIdentifiers.world]: {
+            properties: {
+                [PropertyIdentifiers.worldMinX]: buildPropertyProp(0, PropertyInputLabelText.from(PropertyIdentifiers.worldMinX), "-2", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_NUMBER]),
+                [PropertyIdentifiers.worldMinY]: buildPropertyProp(1, PropertyInputLabelText.from(PropertyIdentifiers.worldMinY), "-1.12", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_NUMBER]),
+                [PropertyIdentifiers.worldMaxX]: buildPropertyProp(2, PropertyInputLabelText.from(PropertyIdentifiers.worldMaxX), "0.47", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_NUMBER]),
+                [PropertyIdentifiers.worldMaxY]: buildPropertyProp(3, PropertyInputLabelText.from(PropertyIdentifiers.worldMaxY), "1.12", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_NUMBER])
+            },
+            constraints: [
                 {
                     propertyIdentifiers: [PropertyIdentifiers.worldMinX, PropertyIdentifiers.worldMaxX],
-                    validatorIdentifier: IS_STRICTLY_LESS
+                    validatorIdentifiers: [IS_STRICTLY_LESS]
                 },
                 {
                     propertyIdentifiers: [PropertyIdentifiers.worldMinY, PropertyIdentifiers.worldMaxY],
-                    validatorIdentifier: IS_STRICTLY_LESS
+                    validatorIdentifiers: [IS_STRICTLY_LESS]
                 }
-            ],
-            errors: []
+            ]
         },
-
-        {
-            identifier: PropertyCollectionIdentifiers.engine,
-            properties: [
-                {
-                    index: 0,
-                    identifier: PropertyIdentifiers.maxIterations,
-                    htmlType: INPUT__TYPE__TEXT,
-                    label: PropertyInputLabelText.from(PropertyIdentifiers.maxIterations),
-                    value: "1000",
-                    binderIdentifier: BINDER_IDENTIFIER_NUMBER,
-                    validatorIdentifiers: [NOT_BLANK, IS_POSITIVE_INTEGER],
-                    errors: []
-                },
-                {
-                    index: 1,
-                    identifier: PropertyIdentifiers.maxModulus,
-                    htmlType: INPUT__TYPE__TEXT,
-                    label: PropertyInputLabelText.from(PropertyIdentifiers.maxModulus),
-                    value: "2",
-                    binderIdentifier: BINDER_IDENTIFIER_NUMBER,
-                    validatorIdentifiers: [NOT_BLANK, IS_POSITIVE_NUMBER],
-                    errors: []
-                },
-            ],
-            errors: []
-        },
-    ]
+        [PropertyGroupIdentifiers.engine]: {
+            properties: {
+                [PropertyIdentifiers.maxIterations]: buildPropertyProp(0, PropertyInputLabelText.from(PropertyIdentifiers.maxIterations), "1000", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_POSITIVE_INTEGER]),
+                [PropertyIdentifiers.maxModulus]: buildPropertyProp(1, PropertyInputLabelText.from(PropertyIdentifiers.maxModulus), "2", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_POSITIVE_NUMBER]),
+                [PropertyIdentifiers.numWorkers]: buildPropertyProp(2, PropertyInputLabelText.from(PropertyIdentifiers.numWorkers), "32", BINDER_IDENTIFIER_NUMBER, [NOT_BLANK, IS_POSITIVE_INTEGER]),
+            }
+        }
+    }
 };
 
 export {DEFAULT_PROPS};

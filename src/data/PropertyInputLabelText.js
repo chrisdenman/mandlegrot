@@ -1,8 +1,9 @@
 import PropertyIdentifiers from "./PropertyIdentifiers";
 
 export default class PropertyInputLabelText {
+
     /**
-     * @param propertyIdentifier
+     * @param {string} propertyIdentifier
      * @return {string}
      */
     static from = (propertyIdentifier) => PROPERTY_IDENTIFIER__TO__LABEL_TEXT.get(propertyIdentifier);
@@ -17,4 +18,5 @@ const PROPERTY_IDENTIFIER__TO__LABEL_TEXT = new Map([
     [PropertyIdentifiers.maxModulus, "Max modulus"],
     [PropertyIdentifiers.windowWidth, "Image width"],
     [PropertyIdentifiers.windowHeight, "Image height"],
+    [PropertyIdentifiers.numWorkers, "Number of workers"]
 ]);

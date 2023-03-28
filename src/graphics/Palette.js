@@ -1,5 +1,6 @@
 import RGBColour from "./RGBColour";
 import ArrayHelpers from "../misc/ArrayHelpers";
+
 export default class Palette {
 
     /**
@@ -33,6 +34,7 @@ export default class Palette {
         componentMax = DEFAULT__MAX_COMPONENT,
         componentStep = DEFAULT__COMPONENT_STEP
     ) {
+
         const reds = [];
         const blues = [];
         const greens = [];
@@ -67,17 +69,11 @@ export default class Palette {
      *
      * @return {RGBColour[]}
      */
-   get getArray() {
+    get getArray() {
         return this.#colours.slice();
-   }
-
-   static get divergentColour() {
-       return DIVERGENT_COLOUR;
-   }
+    }
 }
 
 const DEFAULT__COMPONENT_START = 5;
 const DEFAULT__MAX_COMPONENT = 255;
 const DEFAULT__COMPONENT_STEP = 10;
-
-const DIVERGENT_COLOUR = RGBColour.BLACK;
