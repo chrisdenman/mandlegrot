@@ -1,4 +1,4 @@
-# MandleGrot 0.1.1
+# [MandleGrot 0.1.1](https://github.com/chrisdenman/mandlegrot)
 
 A React application for calculating familiar Mandlebrot sets images.
 

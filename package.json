@@ -44,5 +44,17 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chrisdenman/mandlegrot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chrisdenman/mandlegrot/issues",
+    "email": "chrisdenman@ceilingcat.co.uk"
+  },
+  "homepage": "https://github.com/chrisdenman/mandlegrot",
+  "directories": {
+    "lib": "./src"
   }
 }
