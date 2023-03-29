@@ -206,7 +206,7 @@ export default class App extends React.Component {
                 machine: machine.provide(MandlebrotEngineEvents.calculationFinished)
             }));
         } else {
-            const {worldTopLeft, worldBottomRight, maxModulus, maxIterations} = this.#renderRequest
+            const {worldTopLeft, worldBottomRight, maxModulusSquared, maxIterations} = this.#renderRequest
             const idleWorkers = this.#workers.filter((worker) => worker.isReady);
             if (idleWorkers.length !== 0) {
                 idleWorkers
@@ -225,7 +225,7 @@ export default class App extends React.Component {
                                     taskWorldStartLocation.y,
                                     nextLineOffset,
                                     worldBottomRight.subtract(worldTopLeft).x / windowWidth,
-                                    maxModulus,
+                                    maxModulusSquared,
                                     maxIterations
                                 );
                             }
@@ -286,6 +286,7 @@ export default class App extends React.Component {
 
         const windowWidth = this.#getPropertyValue(PropertyIdentifiers.windowWidth, PropertyGroupIdentifiers.viewport);
         const windowHeight = this.#getPropertyValue(PropertyIdentifiers.windowHeight, PropertyGroupIdentifiers.viewport);
+        const maxModulus = this.#getPropertyValue(PropertyIdentifiers.maxModulus, PropertyGroupIdentifiers.engine);
         return {
             worldTopLeft: Point.at(
                 this.#getPropertyValue(PropertyIdentifiers.worldMinX, PropertyGroupIdentifiers.world),
@@ -297,7 +298,8 @@ export default class App extends React.Component {
             ),
             windowWidth: windowWidth,
             windowHeight: windowHeight,
-            maxModulus: this.#getPropertyValue(PropertyIdentifiers.maxModulus, PropertyGroupIdentifiers.engine),
+            maxModulus: maxModulus,
+            maxModulusSquared: maxModulus * maxModulus,
             maxIterations: this.#getPropertyValue(PropertyIdentifiers.maxIterations, PropertyGroupIdentifiers.engine),
             numWorkers: this.#getPropertyValue(PropertyIdentifiers.numWorkers, PropertyGroupIdentifiers.engine),
             numWindowPoints: windowWidth * windowHeight
@@ -423,7 +425,7 @@ export default class App extends React.Component {
 
             this.#getCacheValue(CacheKeyNames.mandlebrotColouringModule).exports.iterationColouring(
                 numWindowPoints,
-                renderRequest.maxIterations - 1,
+                renderRequest.maxIterations,
                 parseInt(this.#typedState.maxIterationsPalette.getEntry(0).toWasmArgument),
                 this.#typedState.palette.length
             );
@@ -670,6 +672,7 @@ export default class App extends React.Component {
  * @typedef RenderRequest
  * @property {number} maxIterations - the maximum permitted iterations
  * @property {number} maxModulus - the maximum permitted modulus
+ * @property {number} maxModulusSquared - the square of the maximum permitted modulus
  * @property {number} numWindowPoints - the number of points in total to calculate and render
  * @property {number} numWorkers - the number of WASM web workers to use
  * @property {number} windowHeight - the pixel height of the window (canvas)

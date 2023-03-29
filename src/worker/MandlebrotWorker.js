@@ -65,7 +65,7 @@ export default class MandlebrotWorker extends Worker {
         this.postMessage({type: "init", baseUri: document.baseURI, memory: this.#memory});
     }
 
-    execute(offset, count, worldXStart, worldY, windowY, worldXInc, maxModulus, maxIterationCount) {
+    execute(offset, count, worldXStart, worldY, windowY, worldXInc, maxModulusSquared, maxIterationCount) {
         if (this.#state === STATE_READY || this.#state === STATE_READY_ERROR) {
             this.#state = STATE_RUNNING;
             this.#worldY = worldY;
@@ -81,7 +81,7 @@ export default class MandlebrotWorker extends Worker {
                 x0: worldXStart,
                 y0: worldY,
                 xInc: worldXInc,
-                maxModulus,
+                maxModulusSquared,
                 maxIterationCount
             });
         }

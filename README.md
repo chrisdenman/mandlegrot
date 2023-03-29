@@ -1,4 +1,4 @@
-# [MandleGrot 0.1.1](https://github.com/chrisdenman/mandlegrot)
+# [MandleGrot 0.1.2](https://github.com/chrisdenman/mandlegrot)
 
 A React application for calculating familiar Mandlebrot sets images.
 
@@ -66,7 +66,6 @@ approximately twice the memory overhead.
 
 - How to include the wasm via module imports?
 - In App.#windowCursorLocation, why do we need to use the min function?
-- Why do we have to pass maxIterationCount - 1 to the colourisation routines? 
 
 ## Version History
 

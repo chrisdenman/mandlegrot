@@ -1,6 +1,6 @@
 {
   "name": "mandlegrot",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "dependencies": {
     "@ceilingcat/collections": "^1.0.3",
@@ -53,7 +53,6 @@
     "url": "https://github.com/chrisdenman/mandlegrot/issues",
     "email": "chrisdenman@ceilingcat.co.uk"
   },
-  "homepage": "https://github.com/chrisdenman/mandlegrot",
   "directories": {
     "lib": "./src"
   }

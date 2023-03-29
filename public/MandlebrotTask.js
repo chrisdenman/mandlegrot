@@ -8,11 +8,10 @@
  * @property {number} [x0]
  * @property {number} [y0]
  * @property {number} [xInc]
- * @property {number} [maxModulus]
+ * @property {number} [maxModulusSquared]
  * @property {number} [maxIterationCount]
- */
-
-/**
+ *
+ *
  * @typedef WasmWorkerStatusMessage
  * @property {string} type
  */
@@ -49,7 +48,7 @@ self.execute = (data) => {
         data.x0,
         data.y0,
         data.xInc,
-        data.maxModulus,
+        data.maxModulusSquared,
         data.maxIterationCount
     );
     postMessage({type: WASM_WORKER_STATUS_MESSAGE__COMPLETED});
