@@ -40,12 +40,26 @@ approximately twice the memory overhead.
 - The [WebAssembly scripts](https://github.com/chrisdenman/mandlebrot-wot) that implement: the Mandlebrot calculations
   and, colourisation.
 
-## Future Work
+## In Progress
 
 - Add a history of renders: (thumbnail, renderinfo, palette, maxIterationsPalette) so that a user can switch back easily
     - A scrollable pane of thumbnail (images)
     - tooltip for renderinfo
     - maybe a name/tag
+
+1. Declare WebAssembly memory for holding the image data and a single thumbnail
+2. Convert BoxScaling JavaScript into webassembly
+3. Get naive thumbnails working
+4. Work out the states etc, probably a separate worker to do the thumbnail generation
+5. Define the React components:
+   - Render History
+   - HistoricalRender
+        - Thumbnail
+        - RenderInfo
+        - Palettes
+
+## Future Work
+
 - Change the iteration data buffer to use 16 bit words?
     - This would reduce the memory requirements by half for the iteration data but slow the memory
     - copy operations for colouring, is it worth it?
@@ -57,6 +71,8 @@ approximately twice the memory overhead.
 
 ## ToDo
 
+- Rename the maxIterationsPalette + constants to mandlebrotSetPalette, this is the colouring for the points that are in
+  the Mandlebrot set
 - Sort out the publication of the dependencies and host it.
 - Validate the region boundaries for integral and continuous ranges, make sure endpoints are correct
 - Improve the project structure

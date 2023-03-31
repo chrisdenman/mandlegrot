@@ -30,7 +30,7 @@ const DEFAULT_PROPS = {
         width: 75,
         height: 75,
     },
-    maxIterationsPaletteColour: RGBColour.BLACK, // @todo maybe rename to mandlebrotElementColour?
+    maxIterationsPaletteColour: RGBColour.BLACK,
     paletteDefaults: {
         start: 90,
         end: 255,
