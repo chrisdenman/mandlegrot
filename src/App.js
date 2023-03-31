@@ -31,8 +31,7 @@ import MouseStates from "./state/mouse/MouseStates";
 import {DEFAULT_PROPS} from "./AppDefaultProps";
 import {VOID, withIt} from "./misc/ScopeHelper";
 import {createState, getJsProp, setInputValues} from "./data/StateHelper";
-
-const MAX_WEBASSEMBLY_MEMORY_PAGES = 1024;
+import BoxScaleImage from "./graphics/BoxScaleImage";
 
 export default class App extends React.Component {
 
@@ -54,8 +53,8 @@ export default class App extends React.Component {
             },
             mouse: {machine: MouseStateMachine(this.#mouseStartTransitionHandler).provide(WindowMouseEvents.initialised)},
             controls: {machine: ControlsStateMachine()},
-            maxIterationsPalette: new Palette([RGBColour.BLACK]),
-            palette: Palette.create(55, 255, 5),
+            maxIterationsPalette: new Palette([this.props.maxIterationsPaletteColour]),
+            palette: Palette.create(this.props.paletteDefaults.start, this.props.paletteDefaults.end, this.props.paletteDefaults.step),
             inputs: {
                 machine: InputStateMachine(VOID, this.#inputEndTransitionHandler),
                 propertyCollectionsGroup: createState(props.propertyCollectionsGroup),
@@ -105,7 +104,7 @@ export default class App extends React.Component {
 
         if (!StringStateHelper.inState(mandlebrotEngineStateMachine, MandlebrotEngineStates.created) &&
             !StringStateHelper.inState(inputsStateMachine, InputsStates.invalid)) {
-            const canvasContext = this.#canvasRef.current.getContext('2d');
+            const ctx = this.#canvasRef.current.getContext('2d');
             // const inputWindowWidth =
             //     this.#getPropertyValue(PropertyIdentifiers.windowWidth, PropertyCollectionIdentifiers.viewport);
             // const inputWindowHeight =
@@ -115,35 +114,70 @@ export default class App extends React.Component {
             //     [Math.max(windowWidth, inputWindowWidth), Math.max(windowHeight, inputWindowHeight)];
 
             if (StringStateHelper.inState(mandlebrotEngineStateMachine, MandlebrotEngineStates.finished, MandlebrotEngineStates.recolouring)) {
-                canvasContext.putImageData(this.#getCacheValue(CacheKeyNames.imageData), 0, 0);
+                ctx.putImageData(this.#getCacheValue(CacheKeyNames.imageData), 0, 0);
+
+                ctx.putImageData(
+                    BoxScaleImage.scale(
+                        this.#getCacheValue(CacheKeyNames.imageData).data,
+                        windowWidth,
+                        windowHeight,
+                        this.props.thumbnails.width,
+                        this.props.thumbnails.height
+                    ),
+                    0,
+                    0
+                );
             }
+
 
             if (StringStateHelper.inState(mandlebrotEngineStateMachine, MandlebrotEngineStates.finished)) {
                 const windowCursorLocation = this.#typedState.mouse.windowCursorLocation;
                 if (StringStateHelper.inState(mouseStateMachine, MouseStates.active)) {
+                    ctx.beginPath();
+                    ctx.lineWidth = this.props.canvas.crosshairs.lineWidth;
+                    ctx.strokeStyle = this.props.canvas.crosshairs.strokeStyle;
 
-                    canvasContext.beginPath();
-                    canvasContext.lineWidth = 1;
-                    canvasContext.strokeStyle = RGBColour.WHITE.hexString;
+                    ctx.beginPath();
+                    ctx.moveTo(0, windowCursorLocation.y);
+                    ctx.lineTo(windowWidth, windowCursorLocation.y);
+                    ctx.stroke();
 
-                    canvasContext.beginPath();
-                    canvasContext.moveTo(0, windowCursorLocation.y);
-                    canvasContext.lineTo(windowWidth, windowCursorLocation.y);
-                    canvasContext.stroke();
-
-                    canvasContext.beginPath();
-                    canvasContext.moveTo(windowCursorLocation.x, 0);
-                    canvasContext.lineTo(windowCursorLocation.x, windowHeight);
-                    canvasContext.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(windowCursorLocation.x, 0);
+                    ctx.lineTo(windowCursorLocation.x, windowHeight);
+                    ctx.stroke();
                 } else if (StringStateHelper.inState(mouseStateMachine, MouseStates.dragging)) {
                     const windowDragStartLocation = this.#typedState.mouse.windowDragStartLocation;
-                    canvasContext.lineWidth = 1;
-                    canvasContext.strokeStyle = RGBColour.WHITE.hexString;
-                    canvasContext.beginPath();
-                    withIt(windowCursorLocation.subtract(windowDragStartLocation), (deltas) =>
-                        canvasContext.rect(windowDragStartLocation.x, windowDragStartLocation.y, deltas.x, deltas.y)
+
+                    ctx.beginPath();
+                    withIt(
+                        windowCursorLocation.subtract(windowDragStartLocation),
+                        (deltas) => {
+                            const dragProps = this.props.canvas.drag;
+                            ctx.fillStyle = dragProps.fillStyle;
+                            ctx.fillRect(windowDragStartLocation.x, windowDragStartLocation.y, deltas.x, deltas.y)
+
+                            ctx.lineWidth = dragProps.lineWidth;
+                            ctx.strokeStyle = RGBColour.WHITE.hexString;
+                            ctx.rect(windowDragStartLocation.x, windowDragStartLocation.y, deltas.x, deltas.y)
+                            ctx.stroke();
+
+                            ctx.font = dragProps.font;
+                            ctx.textBaseline = 'top';
+
+                            const text = `(${Math.abs(deltas.x)}, ${Math.abs(deltas.y)})`;
+                            const width = ctx.measureText(text).width;
+                            const x = windowCursorLocation.x + 2;
+                            const y = windowCursorLocation.y;
+                            const height = parseInt(ctx.font, 10);
+
+                            ctx.fillStyle = dragProps.dimensionsBackground;
+                            ctx.fillRect(x, y - height, width + 2, height + 2);
+
+                            ctx.fillStyle = dragProps.dimensionsForeground;
+                            ctx.fillText(text, x + 1, y + 2 - height);
+                        }
                     );
-                    canvasContext.stroke();
                 }
             }
         }
@@ -337,16 +371,15 @@ export default class App extends React.Component {
 
             const iterationDataMemory = MemoryHelper.createOrGrow(
                 this.#iterationDataPagesRequired(renderRequest.numWindowPoints),
-                MAX_WEBASSEMBLY_MEMORY_PAGES,
+                cache.get(CacheKeyNames.iterationDataMemory),
+                this.props.WEB_ASSEMBLY_MEMORY_MAX_PAGES,
                 true,
-                cache.get(CacheKeyNames.iterationDataMemory)
             );
 
             const iterationDataAndPaletteMemory = MemoryHelper.createOrGrow(
                 this.#iterationDataAndPalettePagesRequired(renderRequest.numWindowPoints),
-                MAX_WEBASSEMBLY_MEMORY_PAGES,
-                false,
-                this.#iterationDataAndPaletteMemory
+                this.#iterationDataAndPaletteMemory,
+                this.props.WEB_ASSEMBLY_MEMORY_MAX_PAGES
             );
 
             cache.set(CacheKeyNames.iterationDataMemory, iterationDataMemory);
@@ -407,7 +440,7 @@ export default class App extends React.Component {
                     }
                 );
             });
-        } else if (currentState === MandlebrotEngineStates.colourMapping || currentState === MandlebrotEngineStates.recolouring) {
+        } else if (StringStateHelper.in(currentState, MandlebrotEngineStates.colourMapping, MandlebrotEngineStates.recolouring)) {
             const renderRequest = this.#typedState.mandlebrotEngine.renderRequest;
 
             const {windowWidth, windowHeight, numWindowPoints} = renderRequest;
@@ -423,7 +456,12 @@ export default class App extends React.Component {
                 .set(this.#typedState.palette.getArray.map((colour) => parseInt(colour.toWasmArgument)));
             this.#cache.set(CacheKeyNames.imageData, new ImageData(imageDataArray, windowWidth, windowHeight));
 
-            this.#getCacheValue(CacheKeyNames.mandlebrotColouringModule).exports.iterationColouring(
+
+            /**
+             * @type {IterationColouringExports}
+             */
+            const mandlebrotColouringModuleExports = this.#getCacheValue(CacheKeyNames.mandlebrotColouringModule).exports;
+            mandlebrotColouringModuleExports.iterationColouring(
                 numWindowPoints,
                 renderRequest.maxIterations,
                 parseInt(this.#typedState.maxIterationsPalette.getEntry(0).toWasmArgument),
@@ -694,3 +732,15 @@ export default class App extends React.Component {
  * @property {String[]} [errors]
  */
 
+/**
+ * @typedef IterationColouringExports
+ * @property {IterationColouringFunction} iterationColouring
+ */
+
+/**
+ * @callback IterationColouringFunction
+ * @param {number} count
+ * @param {number} maxIterationCount
+ * @param {number} maxIterationColour
+ * @param {number} numPaletteEntries
+ */

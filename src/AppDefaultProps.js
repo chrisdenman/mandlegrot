@@ -10,8 +10,33 @@ import PropertyIdentifiers from "./data/PropertyIdentifiers";
 import PropertyInputLabelText from "./data/PropertyInputLabelText";
 import {BINDER_IDENTIFIER_NUMBER} from "./data/Binders";
 import {buildPropertyProp} from "./data/StateHelper";
+import RGBColour from "./graphics/RGBColour";
 
 const DEFAULT_PROPS = {
+    canvas: {
+        crosshairs: {
+            lineWidth: 1,
+            strokeStyle: RGBColour.WHITE.hexString
+        },
+        drag: {
+            fillStyle: "#22331133",
+            font: "12pt serif",
+            lineWidth: 1,
+            dimensionsBackground: RGBColour.BLACK.hexString,
+            dimensionsForeground: RGBColour.WHITE.hexString,
+        }
+    },
+    thumbnails: {
+        width: 75,
+        height: 75,
+    },
+    maxIterationsPaletteColour: RGBColour.BLACK, // @todo maybe rename to mandlebrotElementColour?
+    paletteDefaults: {
+        start: 90,
+        end: 255,
+        step: 7,
+    },
+    WEB_ASSEMBLY_MEMORY_MAX_PAGES: 1024,
     propertyCollectionsGroup: {
         [PropertyGroupIdentifiers.viewport]: {
             properties: {

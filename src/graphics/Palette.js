@@ -39,9 +39,9 @@ export default class Palette {
         const blues = [];
         const greens = [];
         for (let component = componentStart; component <= componentMax; component += componentStep) {
-            reds.push(new RGBColour(component, 0, 0));
-            greens.push(new RGBColour(0, component, 0));
-            blues.push(new RGBColour(0, 0, component));
+            reds.push(new RGBColour(component, Math.floor(component * .5),Math.floor(component * .9)));
+            greens.push(new RGBColour(255 - component, 255 - Math.floor(component * .5), 255 - Math.floor(component * .9)));
+            blues.push(new RGBColour(Math.floor(component * .5),Math.floor(component * .9), component));
         }
         return new Palette([...reds, ...greens, ...blues]);
     }

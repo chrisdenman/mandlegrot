@@ -56,9 +56,9 @@ export default class MemoryHelper {
      */
     static createOrGrow = (
         requiredNumberOfPages,
+        memory = undefined,
         maximumNumberOfPages = 1024,
         shared = false,
-        memory = undefined,
     ) =>
         memory === undefined ?
             MemoryHelper.create(requiredNumberOfPages, maximumNumberOfPages, shared) :

@@ -42,13 +42,17 @@ approximately twice the memory overhead.
 
 ## Future Work
 
+- Add a history of renders: (thumbnail, renderinfo, palette, maxIterationsPalette) so that a user can switch back easily
+    - A scrollable pane of thumbnail (images)
+    - tooltip for renderinfo
+    - maybe a name/tag
 - Change the iteration data buffer to use 16 bit words?
+    - This would reduce the memory requirements by half for the iteration data but slow the memory
+    - copy operations for colouring, is it worth it?
 - Triggering query parameters?
 - Create a decent UI.
     - Maybe full screen (scrollable) image with floating controls?
     - Improve the colour management: editable colours, add/remove functionality.
-- A render history stack so the user can go back to previous results.
-- Showing the region dimensions on the drag operations.
 - User-friendly image saving (with details on the extents maybe).
 
 ## ToDo
@@ -56,7 +60,6 @@ approximately twice the memory overhead.
 - Sort out the publication of the dependencies and host it.
 - Validate the region boundaries for integral and continuous ranges, make sure endpoints are correct
 - Improve the project structure
-- Update version and check in, add some better pictures
 - Input validation could be better, still render the canvas when max modulus is erroneous e.g.
     - perhaps a separate states for dimensions and other validity?
 - Handle failures properly: memory and worker construction in particular.
@@ -64,7 +67,6 @@ approximately twice the memory overhead.
 
 ## Queries
 
-- How to include the wasm via module imports?
 - In App.#windowCursorLocation, why do we need to use the min function?
 
 ## Version History
