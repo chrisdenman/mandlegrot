@@ -19,10 +19,14 @@ const MANDLEBROT_ENGINE_STATE_MACHINE_CONSTRUCTOR = (startTransitionHandler, end
             StringStateHelper.createTransition(MandlebrotEngineStates.initialisingCalculations, MandlebrotEngineEvents.calculationInitialised, MandlebrotEngineStates.calculating),
             StringStateHelper.createTransition(MandlebrotEngineStates.calculating, MandlebrotEngineEvents.calculationFinished, MandlebrotEngineStates.initialisingColourMapping),
             StringStateHelper.createTransition(MandlebrotEngineStates.initialisingColourMapping, MandlebrotEngineEvents.colouringInitialised, MandlebrotEngineStates.colourMapping),
-            StringStateHelper.createTransition(MandlebrotEngineStates.colourMapping, MandlebrotEngineEvents.colouringFinished, MandlebrotEngineStates.finished),
+            StringStateHelper.createTransition(MandlebrotEngineStates.colourMapping, MandlebrotEngineEvents.colouringFinished, MandlebrotEngineStates.initialisingThumbnailGeneration),
+            StringStateHelper.createTransition(MandlebrotEngineStates.initialisingThumbnailGeneration, MandlebrotEngineEvents.thumbnailGenerationInitialised, MandlebrotEngineStates.thumbnailGeneration),
+            StringStateHelper.createTransition(MandlebrotEngineStates.thumbnailGeneration, MandlebrotEngineEvents.thumbnailGenerationFinished, MandlebrotEngineStates.copyingThumbnail),
+            StringStateHelper.createTransition(MandlebrotEngineStates.copyingThumbnail, MandlebrotEngineEvents.thumbnailCopied, MandlebrotEngineStates.finished),
+
             StringStateHelper.createTransition(MandlebrotEngineStates.finished, MandlebrotEngineEvents.initialiseCalculations, MandlebrotEngineStates.initialisingCalculations),
             StringStateHelper.createTransition(MandlebrotEngineStates.finished, MandlebrotEngineEvents.paletteChange, MandlebrotEngineStates.recolouring),
-            StringStateHelper.createTransition(MandlebrotEngineStates.recolouring, MandlebrotEngineEvents.calculationFinished, MandlebrotEngineStates.finished),
+            StringStateHelper.createTransition(MandlebrotEngineStates.recolouring, MandlebrotEngineEvents.colouringFinished, MandlebrotEngineStates.finished),
         ]
     ),
     IMMUTABLE_EMPTY_SET,

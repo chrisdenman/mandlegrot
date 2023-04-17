@@ -33,10 +33,7 @@ export default class Cache {
      *
      * @return {*} the 'value' argument passed in
      */
-    set = (key, value) => {
-        this.#cache.set(key, value);
-        return value;
-    }
+    set = (key, value) => this.#cache.set(key, value).get(key);
 
     /**
      * Does the cache contain a value associated with the supplied key?

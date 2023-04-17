@@ -1,12 +1,68 @@
 import RGBColour from "./RGBColour";
-import ArrayHelpers from "../misc/ArrayHelpers";
+import ArrayHelper from "../helpers/ArrayHelper";
 
 export default class Palette {
 
     /**
+     * @type {number}
+     */
+    #numberOfColours;
+
+    /**
      * @type {RGBColour[]}
      */
-    #colours
+    constructor(colours) {
+        this.#colours = Object.freeze(colours.map(rgbColour => rgbColour.clone));
+        this.#numberOfColours = colours.length;
+    }
+
+    /**
+     * @type {RGBColour[]}
+     */
+    #colours;
+
+    /**
+     * Retrieve an array containing all the colours, in order.
+     *
+     * @return {RGBColour[]}
+     */
+    get colours() {
+        return this.#colours;
+    }
+
+    /**
+     * Creates a clone of this <code>Palette</code>.
+     *
+     * @return {Palette}
+     */
+    get clone() {
+        return new Palette(this.#cloneColours);
+    }
+
+    /**
+     * @returns {RGBColour[]}
+     */
+    get #cloneColours() {
+        return this.#colours.map(rgbColour => rgbColour.clone);
+    }
+
+    /**
+     * How many entries are in this <code>Palette</code>?
+     *
+     * @return {number}
+     */
+    get length() {
+        return this.#numberOfColours;
+    }
+
+    /**
+     * A palette containing the specified number of random colours.
+     *
+     * @param {number} numColours
+     * @returns {Palette}
+     */
+    static createRandom = numColours =>
+        new Palette(ArrayHelper.createInit(numColours, () => RGBColour.random));
 
     /**
      * Moves a palette entry from index 'currentIndex' to index 'newIndex'.
@@ -16,35 +72,28 @@ export default class Palette {
      *
      * @return {Palette} a new palette updated by moving the colour from its old index to its new index
      */
-    movePaletteEntry = (currentIndex, newIndex) =>
-        new Palette(ArrayHelpers.move(this.#colours, currentIndex, newIndex));
-
-    constructor(colours) {
-        this.#colours = colours
-    }
+    moveColour = (currentIndex, newIndex) =>
+        new Palette(ArrayHelper.move(this.#colours, currentIndex, newIndex));
 
     /**
-     * @param {number} [componentStart]
-     * @param {number} [componentMax]
-     * @param {number} [componentStep]
-     * @return {Palette}
+     *
+     * @param {number} index
+     * @param {RGBColour} colour
      */
-    static create(
-        componentStart = DEFAULT__COMPONENT_START,
-        componentMax = DEFAULT__MAX_COMPONENT,
-        componentStep = DEFAULT__COMPONENT_STEP
-    ) {
+    setColour = (index, colour) => {
+        const newColours = this.#colours.slice();
+        newColours[index] = colour;
+        return new Palette(newColours);
+    };
 
-        const reds = [];
-        const blues = [];
-        const greens = [];
-        for (let component = componentStart; component <= componentMax; component += componentStep) {
-            reds.push(new RGBColour(component, Math.floor(component * .5),Math.floor(component * .9)));
-            greens.push(new RGBColour(255 - component, 255 - Math.floor(component * .5), 255 - Math.floor(component * .9)));
-            blues.push(new RGBColour(Math.floor(component * .5),Math.floor(component * .9), component));
-        }
-        return new Palette([...reds, ...greens, ...blues]);
-    }
+    /**
+     * Returns a new palette without the colour at the specified index.
+     *
+     * @param {number} index - the index of the colour to remove
+     *
+     * @returns {Palette} a new palette without the colour specified
+     */
+    removeColour = index => new Palette(ArrayHelper.remove(this.#colours, index));
 
     /**
      * Retrieve the entry at index 'index'.
@@ -53,27 +102,19 @@ export default class Palette {
      *
      * @return {RGBColour}
      */
-    getEntry = (index) => this.#colours[index];
+    getColour = (index) => this.#colours[index];
 
+    // noinspection JSUnusedGlobalSymbols
     /**
-     * How many entries are in this <code>Palette</code>?
-     *
-     * @return {number}
+     * @param {Palette} other
+     * @return boolean
      */
-    get length() {
-        return this.#colours.length;
-    }
-
-    /**
-     * Retrieve an array containing all the colours, in order.
-     *
-     * @return {RGBColour[]}
-     */
-    get getArray() {
-        return this.#colours.slice();
-    }
+    equals = (other) =>
+        other instanceof Palette &&
+        other.colours.length === this.#colours.length &&
+        other.colours.reduce(
+            (acc, curr, index) =>
+                acc && curr.equals(this.#colours[[index]]),
+            true
+        );
 }
-
-const DEFAULT__COMPONENT_START = 5;
-const DEFAULT__MAX_COMPONENT = 255;
-const DEFAULT__COMPONENT_STEP = 10;

@@ -11,32 +11,32 @@ import PropertyInputLabelText from "./data/PropertyInputLabelText";
 import {BINDER_IDENTIFIER_NUMBER} from "./data/Binders";
 import {buildPropertyProp} from "./data/StateHelper";
 import RGBColour from "./graphics/RGBColour";
+import Palette from "./graphics/Palette";
+import ChannelSeparatedLinearPalette from "./graphics/ChannelSeparatedLinearPalette";
 
 const DEFAULT_PROPS = {
     canvas: {
         crosshairs: {
             lineWidth: 1,
-            strokeStyle: RGBColour.WHITE.hexString
+            strokeStyle: RGBColour.WHITE.htmlColour
         },
         drag: {
             fillStyle: "#22331133",
             font: "12pt serif",
             lineWidth: 1,
-            dimensionsBackground: RGBColour.BLACK.hexString,
-            dimensionsForeground: RGBColour.WHITE.hexString,
+            edgeColour: RGBColour.WHITE.htmlColour,
+            dimensionsBackground: RGBColour.BLACK.htmlColour,
+            dimensionsForeground: RGBColour.WHITE.htmlColour,
         }
     },
     thumbnails: {
-        width: 75,
-        height: 75,
+        widthPixels: 100,
+        heightPixels: 100,
     },
-    maxIterationsPaletteColour: RGBColour.BLACK,
-    paletteDefaults: {
-        start: 90,
-        end: 255,
-        step: 7,
-    },
-    WEB_ASSEMBLY_MEMORY_MAX_PAGES: 1024,
+    mandlebrotPalette: new Palette([RGBColour.BLACK]),
+    palette: ChannelSeparatedLinearPalette.create(
+        50, 255, 15
+    ),
     propertyCollectionsGroup: {
         [PropertyGroupIdentifiers.viewport]: {
             properties: {

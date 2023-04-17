@@ -1,9 +1,34 @@
 /**
+ * @callback IndexCallback
+ * @param {number} index
+ * @return *
+ */
+
+/**
  * Miscellaneous array helper functions.
  */
-export default class ArrayHelpers {
+export default class ArrayHelper {
 
-    static createInit = (length, f) => Array.from({length: length}, (e, i) => f(i));
+    /**
+     * @param {number} length
+     * @param {IndexCallback} f
+     * @returns {*[]}
+     */
+    static createInit = (
+        length,
+        f = () => {
+        }
+    ) => Array.from({length: length}, (_, i) => f(i));
+
+    /**
+     * Returns a reversed copy of an array.
+     *
+     * @param {*[]} array - the array to reverse
+     *
+     * @returns {*[]} a reversed copy of the given array
+     */
+    static reverse = (array) =>
+        array.map((_, index, array) => array[array.length - 1 - index]);
 
     /**
      * Returns the first element of an array that satisfied a predicate if supplied, else the first element of an array.
@@ -39,7 +64,9 @@ export default class ArrayHelpers {
         COPY.splice(newIndex, 0, ELEMENT);
 
         return COPY;
-    }
+    };
+
+    static remove = (array, index) => array.filter((_, i) => i !== index);
 
     // noinspection JSUnusedGlobalSymbols
     /**

@@ -1,4 +1,4 @@
-# [MandleGrot 0.1.2](https://github.com/chrisdenman/mandlegrot)
+# [MandleGrot 0.2.0](https://github.com/chrisdenman/mandlegrot)
 
 A React application for calculating familiar Mandlebrot sets images.
 
@@ -8,6 +8,7 @@ The following images were created using the tool:
 ![Red Mandlebrot Set](./public/samples/1200x1200_red.png)
 ![Odd Mandlebrot Set](./public/samples/1200x1200_odd.png)
 ![Random Mandlebrot Set](./public/samples/1200x1200_random.png)
+![Sophisticated Mandlebrot Set](./public/samples/1200x1200_sophisticated.png)
 
 ## Technical Details
 
@@ -40,50 +41,23 @@ approximately twice the memory overhead.
 - The [WebAssembly scripts](https://github.com/chrisdenman/mandlebrot-wot) that implement: the Mandlebrot calculations
   and, colourisation.
 
-## In Progress
-
-- Add a history of renders: (thumbnail, renderinfo, palette, maxIterationsPalette) so that a user can switch back easily
-    - A scrollable pane of thumbnail (images)
-    - tooltip for renderinfo
-    - maybe a name/tag
-
-1. Declare WebAssembly memory for holding the image data and a single thumbnail
-2. Convert BoxScaling JavaScript into webassembly
-3. Get naive thumbnails working
-4. Work out the states etc, probably a separate worker to do the thumbnail generation
-5. Define the React components:
-   - Render History
-   - HistoricalRender
-        - Thumbnail
-        - RenderInfo
-        - Palettes
-
 ## Future Work
 
-- Change the iteration data buffer to use 16 bit words?
-    - This would reduce the memory requirements by half for the iteration data but slow the memory
-    - copy operations for colouring, is it worth it?
-- Triggering query parameters?
-- Create a decent UI.
-    - Maybe full screen (scrollable) image with floating controls?
-    - Improve the colour management: editable colours, add/remove functionality.
+- Add some other fractals: Newton, ....
+- Cursor keys for movement (ditch the inputs?).
+- Implementing BigInts in WASM for 'infinite' scrolling?
+- Optimised rendering using the simply connected property of the Mandlebrot set.
+- More interesting colourisation methods.
+- Improve the UI:
+    - Maybe full screen (scrollable) image with floating controls (if we keep them at all)?
+- Free hosting.
 - User-friendly image saving (with details on the extents maybe).
-
-## ToDo
-
-- Rename the maxIterationsPalette + constants to mandlebrotSetPalette, this is the colouring for the points that are in
-  the Mandlebrot set
-- Sort out the publication of the dependencies and host it.
-- Validate the region boundaries for integral and continuous ranges, make sure endpoints are correct
-- Improve the project structure
-- Input validation could be better, still render the canvas when max modulus is erroneous e.g.
-    - perhaps a separate states for dimensions and other validity?
-- Handle failures properly: memory and worker construction in particular.
-- Sort out the NaN state transition issue when inputs are not valid.
+- Publish the WebAssembly script modules as proper dependencies.
+- Handle (resource construction) errors conditions properly
 
 ## Queries
 
-- In App.#windowCursorLocation, why do we need to use the min function?
+- In CanvasHelper.canvasCursorLocation, why do we need to use the min and floor function?
 
 ## Version History
 

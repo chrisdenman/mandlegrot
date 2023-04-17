@@ -15,5 +15,5 @@ export default class ControlsEvents {
 const CONTROLS_EVENT__RENDER_REQUESTED = "CONTROLS_EVENT__RENDER_REQUESTED";
 
 const ALL = new Set([
-    CONTROLS_EVENT__RENDER_REQUESTED
+    ControlsEvents.renderRequested,
 ]);

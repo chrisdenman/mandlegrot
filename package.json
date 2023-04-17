@@ -1,21 +1,23 @@
 {
   "name": "mandlegrot",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "dependencies": {
+    "@ceilingcat/mandlebrot-wot": "^4.0.1",
     "@ceilingcat/collections": "^1.0.3",
-    "@ceilingcat/state-machine": "^1.0.4",
+    "@ceilingcat/state-machine": "^2.1.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "serve": "^14.2.0",
+    "wabt": "^1.0.32"
+  },
+  "devDependencies": {
     "@jest/globals": "^29.4.3",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
-    "prop-types": "^15.8.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-drag-reorder": "^1.2.0",
-    "react-scripts": "5.0.1",
-    "serve": "^14.2.0",
-    "wabt": "^1.0.32",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

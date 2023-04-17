@@ -71,10 +71,10 @@ const WINDOW_MOUSE_EVENT__BUTTON_DOWN = "WINDOW_MOUSE_EVENT__BUTTON_DOWN";
 const WINDOW_MOUSE_EVENT__BUTTON_UP = "WINDOW_MOUSE_EVENT__BUTTON_UP";
 
 const ALL = new Set([
-    WINDOW_MOUSE_EVENT__INITIALISED,
-    WINDOW_MOUSE_EVENT__CURSOR_ENTERED,
-    WINDOW_MOUSE_EVENT__CURSOR_MOVED,
-    WINDOW_MOUSE_EVENT__CURSOR_LEFT,
-    WINDOW_MOUSE_EVENT__BUTTON_DOWN,
-    WINDOW_MOUSE_EVENT__BUTTON_UP,
+    WindowMouseEvents.initialised,
+    WindowMouseEvents.cursorEntered,
+    WindowMouseEvents.cursorMoved,
+    WindowMouseEvents.cursorLeft,
+    WindowMouseEvents.buttonDown,
+    WindowMouseEvents.buttonUp,
 ]);

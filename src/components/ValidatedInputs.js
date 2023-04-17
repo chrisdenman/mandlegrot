@@ -9,7 +9,7 @@ const ValidatedInputs = ({disabled, errors, properties, onChange}) => (
     <div>
         {
             properties.map(
-                (property) =>
+                property =>
                     <ValidatedInput
                         key={property.identifier}
                         type={property.htmlType}

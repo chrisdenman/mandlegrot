@@ -31,6 +31,6 @@ CanvasDisplay.propTypes = {
     onMouseLeave: PropTypes.func,
     onMouseDown: PropTypes.func,
     onMouseUp: PropTypes.func,
-}; 
-    
+};
+
 export default CanvasDisplay;

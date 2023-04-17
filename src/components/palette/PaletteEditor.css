@@ -1,0 +1,10 @@
+.addColourControl {
+    background-image: url("/public/add.svg");
+    width: 20px;
+    height: 20px;
+    border: 0;
+}
+
+.paletteEditor {
+    background-color: transparent;
+}

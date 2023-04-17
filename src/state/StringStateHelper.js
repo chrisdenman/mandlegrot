@@ -12,16 +12,6 @@ export default class StringStateHelper {
         (currentState, event, nextState) => [new Pair(currentState, event), nextState];
 
     /**
-     * Determine if two states are equal.
-     *
-     * @param state0
-     * @param state1
-     *
-     * @return {boolean}
-     */
-    static equals = (state0, state1) => state0 === state1;
-
-    /**
      * Is 'state' a member of 'states'?
      *
      * @param {string} state the item to test for membership

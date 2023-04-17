@@ -32,6 +32,6 @@ const INPUTS_EVENT__VALIDATED = "INPUTS_EVENT__VALIDATED";
 const INPUTS_EVENT__INVALIDATED = "INPUTS_EVENT__INVALIDATED";
 
 const ALL = new Set([
-    INPUTS_EVENT__VALIDATED,
-    INPUTS_EVENT__INVALIDATED
+    InputsEvents.validated,
+    InputsEvents.invalidated,
 ]);

@@ -1,5 +1,5 @@
-import ArrayHelpers from "../misc/ArrayHelpers";
-import {map, withIt} from "../misc/ScopeHelper";
+import ArrayHelper from "../helpers/ArrayHelper";
+import {map, withIt} from "../helpers/ScopeHelper";
 import {VALIDATORS} from "./validators/PropertyValidators";
 import {BINDERS} from "./Binders";
 
@@ -55,7 +55,7 @@ const crateInitialPropertyState = ({htmlType, label, index, value, validatorIden
     });
 
 const validateProperty = ({identifier, value, validatorIdentifiers}) =>
-    ArrayHelpers.filterUndefined(
+    ArrayHelper.filterUndefined(
         validatorIdentifiers.map((validatorIdentifier) =>
             withIt(VALIDATORS[validatorIdentifier], (validator) =>
                 validator.predicate(value) ?
@@ -75,35 +75,41 @@ const validateProperty = ({identifier, value, validatorIdentifiers}) =>
 /**
  * @return {SetInputValuesStatus}
  */
-const setInputValues = (groupsState, groupsProps, groupIdentifier, updates = {}) => {
-    const propertyCollectionGroupState = structuredClone(groupsState);
-    const groupProps = groupsProps[groupIdentifier];
-    const groupState = propertyCollectionGroupState[groupIdentifier];
-    Object.entries(updates).forEach(([identifier, value]) => {
-        withIt(String(value), stringValue => {
-                groupState.properties[identifier].value = stringValue;
-                groupState.properties[identifier].errors = validateProperty({
-                    identifier,
-                    value: stringValue,
-                    validatorIdentifiers: groupProps.properties[identifier].validatorIdentifiers
-                });
-            }
-        );
-    });
+const setInputValues = (groupsState, groupsProps, updates = {}) => {
+    // cloning the whole state
+    const newGroupsState = structuredClone(groupsState);
 
-    const individualErrors = propertiesHaveErrors({properties: groupState.properties});
-    groupState.errors = validatePropertyCollection({
-        properties: groupState.properties,
-        constraints: groupProps.constraints
+    let isValid = true;
+
+    Object.entries(updates).forEach(([groupIdentifier, groupUpdates]) => {
+        const groupProps = groupsProps[groupIdentifier];
+        const groupState = newGroupsState[groupIdentifier];
+        Object.entries(groupUpdates).forEach(([identifier, value]) => {
+            withIt(String(value), stringValue => {
+                    // update the given group's values and errors
+                    groupState.properties[identifier].value = stringValue;
+                    groupState.properties[identifier].errors = validateProperty({
+                        identifier,
+                        value: stringValue,
+                        validatorIdentifiers: groupProps.properties[identifier].validatorIdentifiers
+                    });
+                }
+            );
+
+            groupState.errors = validatePropertyCollection({
+                properties: groupState.properties,
+                constraints: groupProps.constraints
+            });
+            const groupErrors = groupState.errors.length !== 0;
+            isValid = isValid && (!propertiesHaveErrors({properties: groupState.properties}) && !groupErrors);
+        });
     });
-    const groupErrors = groupState.errors.length !== 0;
 
     return {
-        propertyCollectionGroupState: propertyCollectionGroupState,
-        isValid: !individualErrors && !groupErrors
+        propertyCollectionGroupState: newGroupsState,
+        isValid: isValid
     };
 }
-
 
 const getJsProp = (collectionIdentifier, identifier, props, state) => {
     const propertiesObj = props[collectionIdentifier].properties[identifier];
@@ -119,7 +125,7 @@ const validatePropertyCollection = ({properties, constraints = []}) =>
     propertiesHaveErrors(
         {properties}) ?
         [] :
-        ArrayHelpers.filterUndefined(constraints.flatMap(({propertyIdentifiers, validatorIdentifiers}) =>
+        ArrayHelper.filterUndefined(constraints.flatMap(({propertyIdentifiers, validatorIdentifiers}) =>
             validatorIdentifiers.map((validatorIdentifier) =>
                 withIt(
                     VALIDATORS[validatorIdentifier],

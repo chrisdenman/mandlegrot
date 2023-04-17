@@ -1,3 +1,5 @@
+import {VOID} from "../../helpers/ScopeHelper";
+
 const STATE_INITIALISING = 0;
 const STATE_READY = 1;
 const STATE_RUNNING = 2;
@@ -53,7 +55,7 @@ export default class MandlebrotWorker extends Worker {
      * @param {function} onfailure
      * @return {Worker}
      */
-    constructor(memory, oninitialisation, onsuccess, onfailure) {
+    constructor(memory, oninitialisation, onsuccess = VOID, onfailure = VOID) {
         super(new URL("MandlebrotTask.js", document.baseURI));
         this.#memory = memory;
         this.#oninitialisation = oninitialisation;
@@ -65,7 +67,27 @@ export default class MandlebrotWorker extends Worker {
         this.postMessage({type: "init", baseUri: document.baseURI, memory: this.#memory});
     }
 
-    execute(offset, count, worldXStart, worldY, windowY, worldXInc, maxModulusSquared, maxIterationCount) {
+    /**
+     *
+     * @param {number} offset
+     * @param {number} count
+     * @param {number} worldXStart
+     * @param {number} worldY
+     * @param {number} windowY
+     * @param {number} worldXInc
+     * @param {number} maxModulusSquared
+     * @param {number} maxIterationCount
+     */
+    execute(
+        offset,
+        count,
+        worldXStart,
+        worldY,
+        windowY,
+        worldXInc,
+        maxModulusSquared,
+        maxIterationCount
+    ) {
         if (this.#state === STATE_READY || this.#state === STATE_READY_ERROR) {
             this.#state = STATE_RUNNING;
             this.#worldY = worldY;
@@ -87,6 +109,7 @@ export default class MandlebrotWorker extends Worker {
         }
     }
 
+    // noinspection JSCheckFunctionSignatures
     onmessage = (message) => {
         /**
          * @type {WasmWorkerStatusMessage}

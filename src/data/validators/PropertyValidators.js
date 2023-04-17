@@ -1,5 +1,5 @@
 import Validator from "./Validator";
-import StringPredicates from "../../misc/predicates/StringPredicates";
+import StringPredicates from "../../helpers/StringPredicates";
 import TextTemplate from "./TextTemplate";
 
 const NOT_BLANK = "notBlank";

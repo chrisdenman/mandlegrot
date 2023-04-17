@@ -1,0 +1,52 @@
+.colour {
+    user-select: none;
+}
+
+.colour.editing input[type="range"] {
+    -webkit-appearance: none;
+    background: transparent;
+    display: block;
+}
+
+.colourControl {
+    width: 15px;
+    height: 15px;
+    border: 0;
+}
+
+.removeColourControl {
+    background-image: url("/public/delete.svg");
+}
+
+.rejectColourControl {
+    background-image: url("/public/undo.svg");
+}
+
+.acceptColourControl {
+    background-image: url("/public/tick.svg");
+}
+
+.colour.editing input[type="range"]:focus {
+    outline: none;
+}
+
+.colour.editing input[type="range"]::-moz-range-track {
+    height: 5px;
+}
+
+.colour.editing input[type="range"].red::-moz-range-track {
+    background-image: linear-gradient(to right, black, red);
+}
+
+.colour.editing input[type="range"].green::-moz-range-track {
+    background-image: linear-gradient(to right, black, green);
+}
+
+.colour.editing input[type="range"].blue::-moz-range-track {
+    background-image: linear-gradient(to right, black, blue);
+}
+
+.colour.editing input[type="range"]::-moz-range-thumb {
+    height: 10px;
+    width: 10px;
+}
